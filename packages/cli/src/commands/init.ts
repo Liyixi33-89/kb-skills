@@ -18,7 +18,7 @@ const TEMPLATE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 const ADAPTER_FOR: Record<DetectedStack, { pkg: string; factory: string } | null> = {
   koa: { pkg: "@kb-skills/adapter-koa", factory: "koaAdapter" },
   react: { pkg: "@kb-skills/adapter-react", factory: "reactAdapter" },
-  express: null,
+  express: { pkg: "@kb-skills/adapter-express", factory: "expressAdapter" },
   vue2: null,
   vue3: null,
   unknown: null,
@@ -99,7 +99,7 @@ export const registerInit = (cli: CAC): void => {
       if (detected.isMonorepo) logger.info(`Monorepo with ${detected.candidateModules.length} module(s).`);
 
       if (detected.candidateModules.length === 0) {
-        logger.warn("No recognizable Koa/React module found. A template config will still be created.");
+        logger.warn("No recognizable Koa/Express/React module found. A template config will still be created.");
       }
 
       const configPath = path.join(projectRoot, "kb-skills.config.ts");

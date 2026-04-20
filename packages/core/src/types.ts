@@ -103,8 +103,17 @@ export interface TsFileInfo {
   constants: string[];
 }
 
+/**
+ * Backend raw payload.
+ *
+ * Historically named `KoaRaw` because Koa was the first supported framework,
+ * but the shape is intentionally generic: any Node/TS backend whose project
+ * layout is `src/{routes,services,models,middleware,config,scripts,db}` can
+ * emit this payload. The `framework` discriminator tells `kb-writer` how to
+ * label the technology stack in the generated KB.
+ */
 export interface KoaRaw {
-  framework: "koa";
+  framework: "koa" | "express";
   routes: KoaRouteFile[];
   models: KoaModelFile[];
   services: KoaServiceFile[];

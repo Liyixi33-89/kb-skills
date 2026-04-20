@@ -28,9 +28,10 @@
 | [`@kb-skills/core`](./packages/core) | 0.0.1 | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
 | [`@kb-skills/cli`](./packages/cli) | 0.0.1 | 命令行工具 `kb-skills` |
 | [`@kb-skills/adapter-koa`](./packages/adapter-koa) | 0.0.1 | 面向 Koa + Mongoose 后端的扫描适配器 |
+| [`@kb-skills/adapter-express`](./packages/adapter-express) | 0.0.1 | 面向 Express + Mongoose 后端的扫描适配器 |
 | [`@kb-skills/adapter-react`](./packages/adapter-react) | 0.0.1 | 面向 React 19 + Zustand 前端的扫描适配器 |
 
-即将推出：`adapter-express`、`adapter-vue2`、`adapter-vue3`。
+即将推出：`adapter-vue2`、`adapter-vue3`。
 
 ---
 
@@ -134,6 +135,7 @@ kb-skills 针对不同技术栈提供专用适配器：
 |---|---|---|
 | React | `@kb-skills/adapter-react` | `pnpm add -D @kb-skills/adapter-react` |
 | Koa | `@kb-skills/adapter-koa` | `pnpm add -D @kb-skills/adapter-koa` |
+| Express | `@kb-skills/adapter-express` | `pnpm add -D @kb-skills/adapter-express` |
 
 **自动加载**：`kb-skills init` 会根据检测到的技术栈自动推荐并安装对应适配器，无需手动配置。
 

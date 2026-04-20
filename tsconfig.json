@@ -5,6 +5,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/cli" },
     { "path": "./packages/adapter-koa" },
+    { "path": "./packages/adapter-express" },
     { "path": "./packages/adapter-react" }
   ]
 }

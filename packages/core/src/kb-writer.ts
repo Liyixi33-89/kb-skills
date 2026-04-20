@@ -247,12 +247,13 @@ const writeChangelog = async (outDir: string, bodySuffix: string): Promise<void>
 };
 
 const writeServerProjectMap = async (mod: ModuleInfo, raw: KoaRaw, outDir: string): Promise<void> => {
+  const frameworkLabel = raw.framework === "express" ? "Express" : "Koa";
   const L: string[] = [`# ${mod.name} — 后端项目全景`, ""];
-  L.push("**技术栈**: Koa + TypeScript + Mongoose");
+  L.push(`**技术栈**: ${frameworkLabel} + TypeScript + Mongoose`);
   L.push(`**路径**: ${mod.root}`, "");
   L.push("## 目录结构", "", "```", "src/");
   L.push("├── index.ts         # 应用入口");
-  L.push("├── routes/          # Koa 路由");
+  L.push(`├── routes/          # ${frameworkLabel} 路由`);
   L.push("├── services/        # 业务逻辑");
   L.push("├── models/          # Mongoose Model");
   L.push("├── middleware/      # 中间件");
@@ -492,7 +493,10 @@ export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
   const { scan, kbRoot } = opts;
 
   for (const mod of scan.modules) {
-    if (mod.kind === "backend" && mod.raw?.framework === "koa") {
+    if (
+      mod.kind === "backend" &&
+      (mod.raw?.framework === "koa" || mod.raw?.framework === "express")
+    ) {
       const raw = mod.raw;
       const outDir = path.join(kbRoot, "server", mod.name);
       await writeServerProjectMap(mod, raw, outDir);
