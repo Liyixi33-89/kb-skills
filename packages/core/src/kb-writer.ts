@@ -1,0 +1,536 @@
+/**
+ * KB Writer — ported from `generate_kb.py`.
+ *
+ * Emits the 5-layer Markdown KB from a ScanResult. Output paths match the
+ * Python edition exactly so both editions can be diffed 1:1.
+ *
+ *   kb/
+ *   ├── server/<name>/{00_project_map,01_index_api,02_index_model,
+ *   │                   03_index_service,04_index_config,changelog}.md
+ *   │   ├── api/<routeName>.md
+ *   │   └── services/<serviceName>.md
+ *   └── frontend/<name>/{00_project_map,01_index_page,02_index_component,
+ *                         03_index_api,04_index_store,05_index_types,
+ *                         changelog}.md
+ *       └── pages/<page-kebab>.md
+ */
+import path from "node:path";
+import { writeFileEnsuring } from "./utils/fs";
+import { kebab } from "./utils/path";
+import type {
+  KoaRaw,
+  ModuleInfo,
+  ReactRaw,
+  ReactPageInfo,
+  ScanResult,
+  TsFileInfo,
+} from "./types";
+
+const nowStamp = (): string => {
+  const d = new Date();
+  const pad = (n: number): string => n.toString().padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+};
+
+const join = (lines: string[]): string => lines.join("\n") + "\n";
+
+// ═══════════════════════════════════════════════════════════════════════
+// Server (Koa) writers
+// ═══════════════════════════════════════════════════════════════════════
+
+const writeServerApiIndex = async (raw: KoaRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# API 路由索引", ""];
+  L.push("## 路由挂载", "");
+  L.push("| 路由文件 | 端点数 | 说明 |", "|---------|--------|------|");
+  for (const r of raw.routes) L.push(`| ${r.name}.ts | ${r.endpoints.length} | ${r.name} 相关 API |`);
+
+  L.push("", "## 全量 API 列表", "");
+  L.push("| # | 方法 | 路径 | 中间件 | 路由文件 |", "|---|------|------|--------|---------|");
+  let idx = 1;
+  for (const r of raw.routes) {
+    for (const e of r.endpoints) {
+      const mw = e.middlewares.length > 0 ? e.middlewares.join(", ") : "—";
+      L.push(`| ${idx} | ${e.method} | ${e.path} | ${mw} | ${r.name}.ts |`);
+      idx += 1;
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "01_index_api.md"), join(L));
+};
+
+const writeServerApiDetails = async (raw: KoaRaw, outDir: string): Promise<void> => {
+  for (const r of raw.routes) {
+    const L: string[] = [`# ${r.name} 路由`, ""];
+    L.push(`**文件**: server/src/routes/${r.name}.ts`);
+    L.push(`**端点数**: ${r.endpoints.length}`, "");
+    L.push("## API 列表", "");
+    for (const e of r.endpoints) {
+      const mw = e.middlewares.length > 0 ? e.middlewares.join(", ") : "无";
+      L.push(`### ${e.method} ${e.path}`, "");
+      L.push(`**中间件**: ${mw}`, "");
+    }
+    await writeFileEnsuring(path.join(outDir, "api", `${r.name}.md`), join(L));
+  }
+};
+
+const writeServerModelIndex = async (raw: KoaRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Mongoose Model 索引", ""];
+  L.push("## Model 总览", "");
+  L.push(
+    "| # | Model 名 | 文件 | 接口数 | 字段数 | 说明 |",
+    "|---|---------|------|--------|--------|------|",
+  );
+  let idx = 1;
+  for (const m of raw.models) {
+    L.push(
+      `| ${idx} | ${m.name} | models/${m.name}.ts | ${m.interfaces.length} | ${m.fields.length} | — |`,
+    );
+    idx += 1;
+  }
+
+  L.push("", "## Model 详情", "");
+  for (const m of raw.models) {
+    L.push(`### ${m.name}`, "");
+    L.push(`**文件**: server/src/models/${m.name}.ts`, "");
+
+    for (const iface of m.interfaces) {
+      L.push(`**接口 \`${iface.name}\`**:`, "");
+      if (iface.fields.length > 0) {
+        L.push("| 字段 | 类型 | 可选 |", "|------|------|------|");
+        for (const f of iface.fields) {
+          const opt = f.optional ? "✅" : "—";
+          L.push(`| ${f.name} | ${f.type} | ${opt} |`);
+        }
+        L.push("");
+      }
+    }
+
+    if (m.fields.length > 0) {
+      L.push("**Schema 字段**:", "");
+      L.push(
+        "| 字段 | 类型 | 必填 | 唯一 | 关联 | 默认值 |",
+        "|------|------|------|------|------|--------|",
+      );
+      for (const f of m.fields) {
+        const req = f.required ? "✅" : "—";
+        const uniq = f.unique ? "✅" : "—";
+        L.push(
+          `| ${f.name} | ${f.type ?? "—"} | ${req} | ${uniq} | ${f.ref ?? "—"} | ${f.default ?? "—"} |`,
+        );
+      }
+      L.push("");
+    }
+  }
+
+  await writeFileEnsuring(path.join(outDir, "02_index_model.md"), join(L));
+};
+
+const writeServerServiceIndex = async (raw: KoaRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Service 索引", ""];
+  L.push("## Service 总览", "");
+  L.push(
+    "| # | Service 名 | 文件 | 导出函数数 | 依赖 Model | 依赖 Service |",
+    "|---|-----------|------|-----------|-----------|-------------|",
+  );
+  let idx = 1;
+  for (const s of raw.services) {
+    const models = s.dependencies.models.join(", ") || "—";
+    const services = s.dependencies.services.join(", ") || "—";
+    L.push(
+      `| ${idx} | ${s.name} | services/${s.name}.ts | ${s.exports.length} | ${models} | ${services} |`,
+    );
+    idx += 1;
+  }
+
+  L.push("", "## Service 摘要", "");
+  for (const s of raw.services) {
+    L.push(`### ${s.name}`, "");
+    L.push(`**文件**: server/src/services/${s.name}.ts`, "");
+    if (s.exports.length > 0) {
+      L.push("**导出函数**:", "", "| 函数 | 说明 |", "|------|------|");
+      for (const exp of s.exports) L.push(`| ${exp} | — |`);
+      L.push("");
+    }
+    const { models, services, external } = s.dependencies;
+    if (models.length + services.length + external.length > 0) {
+      L.push("**依赖**:", "", "| 依赖 | 类型 | 用途 |", "|------|------|------|");
+      for (const x of models) L.push(`| ${x} | Model | — |`);
+      for (const x of services) L.push(`| ${x} | Service | — |`);
+      for (const x of external) L.push(`| ${x} | 外部库 | — |`);
+      L.push("");
+    }
+  }
+
+  await writeFileEnsuring(path.join(outDir, "03_index_service.md"), join(L));
+};
+
+const writeServerServiceDetails = async (raw: KoaRaw, outDir: string): Promise<void> => {
+  for (const s of raw.services) {
+    const complexity = s.exports.length >= 3 ? "复杂" : "简单";
+    const L: string[] = [`# ${s.name}`, ""];
+    L.push(`**文件**: server/src/services/${s.name}.ts`);
+    L.push(`**复杂度**: ${complexity}`, "");
+    L.push("## 职责", "", `${s.name} 业务逻辑服务。`, "");
+
+    const { models, services, external } = s.dependencies;
+    if (models.length + services.length + external.length > 0) {
+      L.push("## 依赖", "", "| 依赖 | 类型 | 用途 |", "|------|------|------|");
+      for (const x of models) L.push(`| ${x} | Model | — |`);
+      for (const x of services) L.push(`| ${x} | Service | — |`);
+      for (const x of external) L.push(`| ${x} | 外部库 | — |`);
+      L.push("");
+    }
+
+    if (s.exports.length > 0) {
+      if (complexity === "简单") {
+        L.push("## 导出函数", "", "| 函数 | 说明 |", "|------|------|");
+        for (const exp of s.exports) L.push(`| ${exp} | — |`);
+      } else {
+        L.push("## 导出函数详情", "");
+        for (const exp of s.exports) {
+          L.push(`### ${exp}`, "");
+          L.push("⚠️ 待补充详细逻辑", "");
+        }
+      }
+      L.push("");
+    }
+
+    await writeFileEnsuring(path.join(outDir, "services", `${s.name}.md`), join(L));
+  }
+};
+
+const writeServerConfigIndex = async (raw: KoaRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 配置与中间件索引", ""];
+
+  L.push("## 中间件", "");
+  L.push("| # | 中间件名 | 文件 | 说明 |", "|---|---------|------|------|");
+  let idx = 1;
+  for (const mw of raw.middleware) {
+    for (const exp of mw.exports) {
+      L.push(`| ${idx} | ${exp} | middleware/${mw.name}.ts | — |`);
+      idx += 1;
+    }
+  }
+  L.push("");
+
+  L.push("## 配置文件", "");
+  L.push("| # | 文件 | 导出 | 说明 |", "|---|------|------|------|");
+  idx = 1;
+  for (const cfg of raw.config) {
+    const exports = cfg.exports.join(", ") || "—";
+    L.push(`| ${idx} | config/${path.basename(cfg.file)} | ${exports} | — |`);
+    idx += 1;
+  }
+  L.push("");
+
+  L.push("## 数据库", "");
+  L.push("| # | 文件 | 说明 |", "|---|------|------|");
+  for (const db of raw.db) {
+    L.push(`| 1 | db/${path.basename(db.file)} | MongoDB 连接管理 |`);
+  }
+  L.push("");
+
+  await writeFileEnsuring(path.join(outDir, "04_index_config.md"), join(L));
+};
+
+const writeChangelog = async (outDir: string, bodySuffix: string): Promise<void> => {
+  const content = `# Changelog
+
+## ${nowStamp()} — 初始生成
+
+- 从源码扫描自动生成知识库
+- ${bodySuffix}
+`;
+  await writeFileEnsuring(path.join(outDir, "changelog.md"), content);
+};
+
+const writeServerProjectMap = async (mod: ModuleInfo, raw: KoaRaw, outDir: string): Promise<void> => {
+  const L: string[] = [`# ${mod.name} — 后端项目全景`, ""];
+  L.push("**技术栈**: Koa + TypeScript + Mongoose");
+  L.push(`**路径**: ${mod.root}`, "");
+  L.push("## 目录结构", "", "```", "src/");
+  L.push("├── index.ts         # 应用入口");
+  L.push("├── routes/          # Koa 路由");
+  L.push("├── services/        # 业务逻辑");
+  L.push("├── models/          # Mongoose Model");
+  L.push("├── middleware/      # 中间件");
+  L.push("├── config/          # 配置");
+  L.push("└── db/              # 数据库连接");
+  L.push("```", "");
+  L.push("## 统计", "");
+  L.push(`- 路由文件: ${raw.routes.length} 个`);
+  L.push(`- Service: ${raw.services.length} 个`);
+  L.push(`- Model: ${raw.models.length} 个`);
+  L.push(`- 中间件: ${raw.middleware.length} 个`);
+  const endpoints = raw.routes.reduce((acc, r) => acc + r.endpoints.length, 0);
+  L.push(`- 端点总数: ${endpoints}`);
+  await writeFileEnsuring(path.join(outDir, "00_project_map.md"), join(L));
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// React writers
+// ═══════════════════════════════════════════════════════════════════════
+
+const isPageFile = (p: TsFileInfo): boolean =>
+  !!p.relPath && /\.(tsx|jsx)$/.test(p.relPath);
+
+const writeReactProjectMap = async (
+  mod: ModuleInfo,
+  raw: ReactRaw,
+  outDir: string,
+): Promise<void> => {
+  const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
+  L.push("**技术栈**: React + TypeScript + Antd + TailwindCSS + Zustand");
+  L.push(`**路径**: ${mod.root}`, "");
+  L.push("## 目录结构", "", "```", "src/");
+  L.push("├── App.tsx           # 根组件 + 路由");
+  L.push("├── api/              # API 请求封装");
+  L.push("├── components/       # 公共组件");
+  L.push("├── pages/            # 页面组件");
+  L.push("├── store/            # Zustand 状态管理");
+  L.push("└── types/            # TypeScript 类型定义");
+  L.push("```", "");
+
+  if (raw.routes.length > 0) {
+    L.push("## 路由表", "", "| 路径 | 组件 |", "|------|------|");
+    for (const r of raw.routes) L.push(`| ${r.path} | ${r.component} |`);
+    L.push("");
+  }
+
+  L.push("## 统计", "");
+  L.push(`- 页面: ${raw.pages.filter(isPageFile).length} 个`);
+  L.push(`- 组件: ${raw.components.length} 个`);
+  L.push(`- API 文件: ${raw.apiFiles.length} 个`);
+  L.push(`- Store 文件: ${raw.storeFiles.length} 个`);
+  L.push(`- Types 文件: ${raw.typesFiles.length} 个`);
+  L.push(`- Hooks: ${raw.hooks.length} 个`);
+  await writeFileEnsuring(path.join(outDir, "00_project_map.md"), join(L));
+};
+
+const writeReactPageIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 页面索引", ""];
+  if (raw.routes.length > 0) {
+    L.push("## 路由表", "", "| # | 路由路径 | 页面组件 |", "|---|---------|---------|");
+    raw.routes.forEach((r, i) => L.push(`| ${i + 1} | ${r.path} | ${r.component} |`));
+    L.push("");
+  }
+
+  const pages = raw.pages.filter(isPageFile) as ReactPageInfo[];
+  L.push("## 页面功能摘要", "");
+  L.push(
+    "| # | 页面 | 文件 | useState 数 | API 调用 | 事件处理 |",
+    "|---|------|------|------------|---------|---------|",
+  );
+  pages.forEach((p, i) => {
+    const states = p.states?.length ?? 0;
+    const apis = (p.apiCalls ?? []).slice(0, 3).join(", ") || "—";
+    const handlers = p.handlers?.length ?? 0;
+    L.push(`| ${i + 1} | ${p.name} | ${p.relPath ?? ""} | ${states} | ${apis} | ${handlers} |`);
+  });
+  L.push("");
+  await writeFileEnsuring(path.join(outDir, "01_index_page.md"), join(L));
+};
+
+const writeReactPageDetails = async (raw: ReactRaw, outDir: string): Promise<void> => {
+  const pages = raw.pages.filter(isPageFile) as ReactPageInfo[];
+  for (const p of pages) {
+    const kbName = kebab(p.name);
+    const statesCount = p.states?.length ?? 0;
+    const apisCount = p.apiCalls?.length ?? 0;
+    const complexity = statesCount >= 4 || apisCount >= 2 ? "复杂" : "简单";
+
+    const L: string[] = [`# ${p.name}`, ""];
+    L.push(`**文件**: ${p.relPath ?? ""}`);
+    L.push(`**复杂度**: ${complexity}`, "");
+    L.push("## 功能概述", "", `${p.name} 页面。`, "");
+
+    if (p.states?.length) {
+      L.push("## 状态管理", "", "| 状态 | setter | 类型 | 初始值 |", "|------|--------|------|--------|");
+      for (const s of p.states) {
+        L.push(`| ${s.name} | ${s.setter} | ${s.type || "—"} | ${s.initial || "—"} |`);
+      }
+      L.push("");
+    }
+    if (p.apiCalls?.length) {
+      L.push("## API 调用", "", "| API 方法 |", "|---------|");
+      for (const a of p.apiCalls) L.push(`| api.${a} |`);
+      L.push("");
+    }
+    if (p.hooks?.length) {
+      L.push("## Hooks", "", "| Hook |", "|------|");
+      for (const h of p.hooks) L.push(`| ${h} |`);
+      L.push("");
+    }
+    if (p.handlers?.length) {
+      L.push("## 事件处理函数", "", "| 函数名 |", "|--------|");
+      for (const h of p.handlers) L.push(`| ${h} |`);
+      L.push("");
+    }
+
+    await writeFileEnsuring(path.join(outDir, "pages", `${kbName}.md`), join(L));
+  }
+};
+
+const writeReactComponentIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 公共组件索引", ""];
+  if (raw.components.length === 0) {
+    L.push("> 该模块无公共组件", "");
+  } else {
+    L.push("## 组件总览", "");
+    L.push("| # | 组件名 | 文件 | Props 数 |", "|---|--------|------|---------|");
+    raw.components.forEach((c, i) =>
+      L.push(`| ${i + 1} | ${c.name} | ${c.relPath ?? ""} | ${c.props?.length ?? 0} |`),
+    );
+    L.push("");
+    L.push("## 组件详情", "");
+    for (const c of raw.components) {
+      L.push(`### ${c.name}`, "", `**文件**: ${c.relPath ?? ""}`, "");
+      if (c.props?.length) {
+        L.push("**Props**:", "", "| Prop | 类型 | 可选 |", "|------|------|------|");
+        for (const p of c.props) {
+          L.push(`| ${p.name} | ${p.type} | ${p.optional ? "✅" : "—"} |`);
+        }
+        L.push("");
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "02_index_component.md"), join(L));
+};
+
+const writeReactApiIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 前端 API 封装索引", ""];
+  if (raw.apiFiles.length === 0) {
+    L.push("> 该模块无 API 封装文件", "");
+  } else {
+    for (const af of raw.apiFiles) {
+      L.push(`## ${path.basename(af.file)}`, "", `**文件**: ${af.relPath ?? ""}`, "");
+      if (af.exports.length > 0) {
+        L.push("**导出函数**:", "", "| # | 函数名 |", "|---|--------|");
+        af.exports.forEach((e, i) => L.push(`| ${i + 1} | ${e} |`));
+        L.push("");
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "03_index_api.md"), join(L));
+};
+
+const writeReactStoreIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Zustand Store 索引", ""];
+  if (raw.storeFiles.length === 0) {
+    L.push("> 该模块无 Store 文件", "");
+  } else {
+    for (const sf of raw.storeFiles) {
+      L.push(`## ${path.basename(sf.file)}`, "", `**文件**: ${sf.relPath ?? ""}`, "");
+      if (sf.exports.length > 0) {
+        L.push("**导出**:", "", "| 导出名 |", "|--------|");
+        for (const e of sf.exports) L.push(`| ${e} |`);
+        L.push("");
+      }
+      for (const iface of sf.interfaces) {
+        L.push(`**接口 \`${iface.name}\`**:`, "");
+        if (iface.fields.length > 0) {
+          L.push("| 字段 | 类型 | 可选 |", "|------|------|------|");
+          for (const f of iface.fields) {
+            L.push(`| ${f.name} | ${f.type} | ${f.optional ? "✅" : "—"} |`);
+          }
+          L.push("");
+        }
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "04_index_store.md"), join(L));
+};
+
+const writeReactTypesIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# TypeScript 类型定义索引", ""];
+  if (raw.typesFiles.length === 0) {
+    L.push("> 该模块无类型定义文件", "");
+  } else {
+    for (const tf of raw.typesFiles) {
+      L.push(`## ${path.basename(tf.file)}`, "", `**文件**: ${tf.relPath ?? ""}`, "");
+      if (tf.interfaces.length > 0) {
+        L.push("### 接口", "");
+        for (const iface of tf.interfaces) {
+          L.push(`#### ${iface.name}`, "");
+          if (iface.fields.length > 0) {
+            L.push("| 字段 | 类型 | 可选 |", "|------|------|------|");
+            for (const f of iface.fields) {
+              L.push(`| ${f.name} | ${f.type} | ${f.optional ? "✅" : "—"} |`);
+            }
+            L.push("");
+          }
+        }
+      }
+      if (tf.types.length > 0) {
+        L.push("### 类型别名", "", "| 类型名 | 定义 |", "|--------|------|");
+        for (const t of tf.types) L.push(`| ${t.name} | ${t.value.slice(0, 60)} |`);
+        L.push("");
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "05_index_types.md"), join(L));
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// Public API
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface WriteKbOptions {
+  scan: ScanResult;
+  kbRoot: string;
+  /**
+   * Called after each file is written. May return a Promise; writeKb will
+   * await it before writing the next file, so hooks (e.g. markDone) never
+   * race against each other on shared state like progress.md.
+   */
+  onFileWritten?: (relPath: string) => void | Promise<void>;
+}
+
+export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
+  const { scan, kbRoot } = opts;
+
+  for (const mod of scan.modules) {
+    if (mod.kind === "backend" && mod.raw?.framework === "koa") {
+      const raw = mod.raw;
+      const outDir = path.join(kbRoot, "server", mod.name);
+      await writeServerProjectMap(mod, raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/00_project_map.md`);
+      await writeServerApiIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/01_index_api.md`);
+      await writeServerApiDetails(raw, outDir);
+      for (const r of raw.routes) await opts.onFileWritten?.(`server/${mod.name}/api/${r.name}.md`);
+      await writeServerModelIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/02_index_model.md`);
+      await writeServerServiceIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/03_index_service.md`);
+      await writeServerServiceDetails(raw, outDir);
+      for (const s of raw.services) await opts.onFileWritten?.(`server/${mod.name}/services/${s.name}.md`);
+      await writeServerConfigIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/04_index_config.md`);
+      await writeChangelog(outDir, "覆盖全量路由、Model、Service、配置");
+      await opts.onFileWritten?.(`server/${mod.name}/changelog.md`);
+    } else if (mod.kind === "frontend" && mod.raw?.framework === "react") {
+      const raw = mod.raw;
+      const outDir = path.join(kbRoot, "frontend", mod.name);
+      await writeReactProjectMap(mod, raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/00_project_map.md`);
+      await writeReactPageIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/01_index_page.md`);
+      await writeReactPageDetails(raw, outDir);
+      const pages = (raw.pages as ReactPageInfo[]).filter((p) => isPageFile(p));
+      for (const p of pages) await opts.onFileWritten?.(`frontend/${mod.name}/pages/${kebab(p.name)}.md`);
+      await writeReactComponentIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/02_index_component.md`);
+      await writeReactApiIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/03_index_api.md`);
+      await writeReactStoreIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/04_index_store.md`);
+      await writeReactTypesIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
+      await writeChangelog(outDir, "覆盖全量页面、组件、API、Store、Types");
+      await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
+    }
+  }
+};

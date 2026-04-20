@@ -1,0 +1,64 @@
+{
+  "name": "@kb-skills/cli",
+  "version": "0.0.1",
+  "description": "Command-line interface for kb-skills — generate AI-ready KB from your code.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "kb-skills": "./bin/kb-skills.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./config": {
+      "types": "./dist/config/define.d.ts",
+      "import": "./dist/config/define.js",
+      "require": "./dist/config/define.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "templates",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc -b --pretty"
+  },
+  "dependencies": {
+    "@kb-skills/core": "workspace:*",
+    "cac": "^6.7.14",
+    "jiti": "^2.4.2",
+    "ora": "^8.1.1",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "knowledge-base",
+    "kb-skills",
+    "codegen"
+  ]
+}
