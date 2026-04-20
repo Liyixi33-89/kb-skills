@@ -8,7 +8,7 @@
 
 ## [0.0.1] - 2026-04-20
 
-首次公开发布，包含以下四个 npm 包：
+首次公开发布，包含以下五个 npm 包：
 
 ### Added
 
@@ -25,6 +25,7 @@
   - `kb-skills status` — 查看 KB 生成进度
   - `kb-skills verify` — CI 友好的完整性校验（退出码 1 表示有缺口）
 - **`@kb-skills/adapter-koa`** — Koa + Mongoose 后端扫描适配器
+- **`@kb-skills/adapter-express`** — Express 4/5 后端扫描适配器
 - **`@kb-skills/adapter-react`** — React 19 + Zustand 前端扫描适配器
 - **22 个内置 Skill**：`doc-code-to-kb`、`kb-qa`、`bug-fix`、`refactor`、
   `code-review`、`prd-brd-to-prd`、`prd-to-backend-design`、

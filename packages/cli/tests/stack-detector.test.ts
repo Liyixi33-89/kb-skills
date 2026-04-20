@@ -38,6 +38,22 @@ describe("detectStack", () => {
     expect(res.candidateModules[0]).toMatchObject({ name: "my-api", relPath: "." });
   });
 
+  it("detects an express single-package project", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-api",
+        dependencies: { express: "^4.21.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["express"]);
+    expect(res.isMonorepo).toBe(false);
+    expect(res.candidateModules).toHaveLength(1);
+    expect(res.candidateModules[0]).toMatchObject({ name: "my-api", relPath: "." });
+  });
+
   it("detects a react single-package project", async () => {
     await writeFile(
       path.join(tmp, "package.json"),
