@@ -19,6 +19,8 @@
     "changeset": "changeset",
     "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
+    "release:npm": "pnpm build && pnpm -r --filter \"./packages/*\" publish --access public --no-git-checks",
+    "release:npm:dry": "pnpm build && pnpm -r --filter \"./packages/*\" publish --access public --no-git-checks --dry-run",
     "sync-skills": "tsx scripts/sync-skills.ts"
   },
   "devDependencies": {
