@@ -17,7 +17,7 @@
     "typecheck": "tsc -b",
     "clean": "pnpm -r exec rimraf dist .turbo node_modules/.cache",
     "changeset": "changeset",
-    "version": "changeset version",
+    "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
     "sync-skills": "tsx scripts/sync-skills.ts"
   },

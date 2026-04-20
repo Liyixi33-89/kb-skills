@@ -4,7 +4,6 @@
   "description": "Command-line interface for kb-skills — generate AI-ready KB from your code.",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -13,13 +12,11 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     },
     "./config": {
       "types": "./dist/config/define.d.ts",
-      "import": "./dist/config/define.js",
-      "require": "./dist/config/define.cjs"
+      "import": "./dist/config/define.js"
     },
     "./package.json": "./package.json"
   },
