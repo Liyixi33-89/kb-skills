@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Command-line interface for kb-skills — generate AI-ready KB from your code.",
   "license": "MIT",
   "type": "module",

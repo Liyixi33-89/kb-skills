@@ -1,5 +1,12 @@
 # @kb-skills/cli
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [4cec105]
+  - @kb-skills/core@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes
