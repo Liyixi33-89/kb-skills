@@ -3,3 +3,4 @@
  */
 export * from "./detect-orm";
 export * from "./scan-prisma";
+export * from "./scan-typeorm";

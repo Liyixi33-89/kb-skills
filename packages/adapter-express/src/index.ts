@@ -17,6 +17,7 @@ import {
   detectOrm,
   readDepsFromPackageJson,
   scanPrismaSchemaFile,
+  scanTypeormEntities,
   type KoaEndpoint,
   type KoaInterface,
   type KoaInterfaceField,
@@ -252,7 +253,9 @@ const scanServer = async (serverRoot: string): Promise<KoaRaw> => {
   }
   if (orm === "prisma") {
     raw.models = await scanPrismaSchemaFile(serverRoot);
-  } else {
+  } else if (orm === "typeorm") {
+    raw.models = await scanTypeormEntities(serverRoot);
+  } else if (orm === "mongoose") {
     for (const f of await listFiles(path.join(src, "models"), [".ts"])) {
       const info = await scanMongooseModel(f);
       if (info) {
@@ -262,6 +265,8 @@ const scanServer = async (serverRoot: string): Promise<KoaRaw> => {
       }
     }
   }
+  // For unsupported ORMs (e.g. "sequelize"), `raw.models` stays empty —
+  // kb-writer still produces a valid skeleton index.
   for (const f of await listFiles(path.join(src, "services"), [".ts"])) {
     const info = await scanExpressService(f);
     if (info) {

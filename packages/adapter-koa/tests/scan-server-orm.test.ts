@@ -75,4 +75,44 @@ describe("adapter-koa scanServer ORM routing", () => {
     const modelSymbols = mod.symbols.filter((s) => s.kind === "model");
     expect(modelSymbols.map((s) => s.name).sort()).toEqual(["Post", "User"]);
   });
+
+  it("routes to TypeORM scanner and populates raw.models from src/entities/**.ts", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "api",
+      dependencies: { koa: "^2.15.0", typeorm: "^0.3.0" },
+    });
+    await writeText(
+      path.join(tmp, "src", "entities", "user.ts"),
+      `import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";\n\n` +
+        `@Entity("users")\nexport class User {\n` +
+        `  @PrimaryGeneratedColumn() id!: number;\n` +
+        `  @Column({ length: 255, unique: true }) email!: string;\n` +
+        `}\n`,
+    );
+
+    const adapter = createKoaAdapter();
+    const mod = await adapter.scan(tmp);
+
+    expect(mod.raw?.framework).toBe("koa");
+    // @ts-expect-error backend raw has orm
+    expect(mod.raw?.orm).toBe("typeorm");
+    const models = (mod.raw && "models" in mod.raw ? mod.raw.models : []) as Array<{
+      name: string;
+      orm?: string;
+      tableName?: string;
+      fields: Array<{ name: string; primary?: boolean; length?: number; unique?: boolean }>;
+    }>;
+    expect(models).toHaveLength(1);
+    expect(models[0]).toMatchObject({
+      name: "User",
+      orm: "typeorm",
+      tableName: "users",
+    });
+    const email = models[0]!.fields.find((f) => f.name === "email")!;
+    expect(email.length).toBe(255);
+    expect(email.unique).toBe(true);
+
+    const modelSymbols = mod.symbols.filter((s) => s.kind === "model");
+    expect(modelSymbols.map((s) => s.name)).toEqual(["User"]);
+  });
 });

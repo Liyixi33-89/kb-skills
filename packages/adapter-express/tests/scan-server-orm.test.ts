@@ -73,4 +73,49 @@ describe("adapter-express scanServer ORM routing", () => {
     expect(username.unique).toBe(true);
     expect(username.length).toBe(64);
   });
+
+  it("routes to TypeORM scanner when typeorm is installed", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "api",
+      dependencies: { express: "^4.21.0", typeorm: "^0.3.0" },
+    });
+    await writeText(
+      path.join(tmp, "src", "entity", "post.ts"),
+      `import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";\n\n` +
+        `@Entity({ name: "posts" })\nexport class Post {\n` +
+        `  @PrimaryGeneratedColumn() id!: number;\n` +
+        `  @Column() userId!: number;\n` +
+        `  @ManyToOne(() => User)\n  @JoinColumn({ name: "userId" })\n  user!: User;\n` +
+        `}\n`,
+    );
+
+    const adapter = createExpressAdapter();
+    const mod = await adapter.scan(tmp);
+
+    expect(mod.raw?.framework).toBe("express");
+    // @ts-expect-error backend raw has orm
+    expect(mod.raw?.orm).toBe("typeorm");
+
+    const models = (mod.raw && "models" in mod.raw ? mod.raw.models : []) as Array<{
+      name: string;
+      orm?: string;
+      tableName?: string;
+      fields: Array<{
+        name: string;
+        relation?: { kind: string; target: string; foreignKey?: string };
+      }>;
+    }>;
+    expect(models).toHaveLength(1);
+    expect(models[0]).toMatchObject({
+      name: "Post",
+      orm: "typeorm",
+      tableName: "posts",
+    });
+    const user = models[0]!.fields.find((f) => f.name === "user")!;
+    expect(user.relation).toMatchObject({
+      kind: "many-to-one",
+      target: "User",
+      foreignKey: "userId",
+    });
+  });
 });
