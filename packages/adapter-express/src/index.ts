@@ -14,6 +14,9 @@ import {
   relPosix,
   scanTsFile,
   readText,
+  detectOrm,
+  readDepsFromPackageJson,
+  scanPrismaSchemaFile,
   type KoaEndpoint,
   type KoaInterface,
   type KoaInterfaceField,
@@ -24,6 +27,7 @@ import {
   type KoaSchemaField,
   type KoaServiceFile,
   type ModuleInfo,
+  type OrmKind,
   type ScanAdapter,
   type SymbolInfo,
   type TsFileInfo,
@@ -224,8 +228,12 @@ const scanExpressMiddleware = async (file: string): Promise<KoaMiddlewareFile | 
 
 const scanServer = async (serverRoot: string): Promise<KoaRaw> => {
   const src = path.join(serverRoot, "src");
+  const deps = await readDepsFromPackageJson(serverRoot);
+  const orm: OrmKind = detectOrm(deps) ?? "mongoose";
+
   const raw: KoaRaw = {
     framework: "express",
+    orm,
     routes: [],
     models: [],
     services: [],
@@ -242,11 +250,16 @@ const scanServer = async (serverRoot: string): Promise<KoaRaw> => {
       raw.routes.push(info);
     }
   }
-  for (const f of await listFiles(path.join(src, "models"), [".ts"])) {
-    const info = await scanMongooseModel(f);
-    if (info) {
-      info.relPath = relPosix(serverRoot, f);
-      raw.models.push(info);
+  if (orm === "prisma") {
+    raw.models = await scanPrismaSchemaFile(serverRoot);
+  } else {
+    for (const f of await listFiles(path.join(src, "models"), [".ts"])) {
+      const info = await scanMongooseModel(f);
+      if (info) {
+        info.relPath = relPosix(serverRoot, f);
+        info.orm = "mongoose";
+        raw.models.push(info);
+      }
     }
   }
   for (const f of await listFiles(path.join(src, "services"), [".ts"])) {

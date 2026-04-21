@@ -1,0 +1,78 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import createKoaAdapter from "../src/index";
+
+const writeJson = async (p: string, obj: unknown): Promise<void> => {
+  await mkdir(path.dirname(p), { recursive: true });
+  await writeFile(p, JSON.stringify(obj, null, 2), "utf8");
+};
+
+const writeText = async (p: string, content: string): Promise<void> => {
+  await mkdir(path.dirname(p), { recursive: true });
+  await writeFile(p, content, "utf8");
+};
+
+describe("adapter-koa scanServer ORM routing", () => {
+  let tmp: string;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), "kb-skills-koa-"));
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  it("defaults to mongoose and scans src/models when no ORM dep is found", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "api",
+      dependencies: { koa: "^2.15.0" },
+    });
+    await writeText(
+      path.join(tmp, "src", "models", "user.ts"),
+      `import { Schema } from "mongoose";\n` +
+        `const UserSchema = new Schema({ name: { type: String, required: true } });\n` +
+        `export const User = mongoose.model("User", UserSchema);\n`,
+    );
+
+    const adapter = createKoaAdapter();
+    const mod = await adapter.scan(tmp);
+
+    expect(mod.raw?.framework).toBe("koa");
+    // @ts-expect-error backend raw has orm
+    expect(mod.raw?.orm).toBe("mongoose");
+    expect(mod.raw && "models" in mod.raw && mod.raw.models.length).toBe(1);
+  });
+
+  it("routes to Prisma scanner and populates raw.models from schema.prisma", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "api",
+      dependencies: { koa: "^2.15.0", "@prisma/client": "^5.0.0" },
+      devDependencies: { prisma: "^5.0.0" },
+    });
+    await writeText(
+      path.join(tmp, "prisma", "schema.prisma"),
+      `model User {\n  id Int @id @default(autoincrement())\n  email String @unique\n}\n` +
+        `model Post {\n  id Int @id\n  userId Int\n  user User @relation(fields: [userId], references: [id])\n}\n`,
+    );
+    // Intentionally leave src/models empty to prove Prisma path is used.
+
+    const adapter = createKoaAdapter();
+    const mod = await adapter.scan(tmp);
+
+    expect(mod.raw?.framework).toBe("koa");
+    // @ts-expect-error backend raw has orm
+    expect(mod.raw?.orm).toBe("prisma");
+    const models = (mod.raw && "models" in mod.raw ? mod.raw.models : []) as Array<{
+      name: string;
+      orm?: string;
+    }>;
+    expect(models.map((m) => m.name).sort()).toEqual(["Post", "User"]);
+    expect(models.every((m) => m.orm === "prisma")).toBe(true);
+
+    const modelSymbols = mod.symbols.filter((s) => s.kind === "model");
+    expect(modelSymbols.map((s) => s.name).sort()).toEqual(["Post", "User"]);
+  });
+});

@@ -30,6 +30,14 @@ export interface SymbolInfo {
 
 export type ModuleKind = "frontend" | "backend";
 
+/**
+ * ORM flavours understood by the backend model scanner.
+ *
+ * The set is intentionally open — adapters declare it on `KoaRaw.orm` and
+ * `KoaModelFile.orm` so `kb-writer` can render ORM-specific tables.
+ */
+export type OrmKind = "mongoose" | "prisma" | "typeorm" | "sequelize";
+
 // ─── Adapter-specific raw payloads (used by kb-writer to emit detailed KB) ───
 
 export interface KoaEndpoint {
@@ -44,15 +52,49 @@ export interface KoaRouteFile {
   endpoints: KoaEndpoint[];
 }
 
-export interface KoaSchemaField {
+/**
+ * Relation metadata for a SQL foreign-key style field (Prisma / TypeORM /
+ * Sequelize). `ref` remains the Mongoose-style single-string back-ref, so
+ * Mongoose scanners can keep using it untouched.
+ */
+export interface ModelFieldRelation {
+  kind: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
+  target: string;
+  foreignKey?: string;
+}
+
+/**
+ * Unified field descriptor covering Mongoose Schemas and SQL ORMs.
+ *
+ * All SQL-specific members are optional so Mongoose adapters emitting the
+ * legacy shape (`{ name, type, required, unique, ref, default, enum }`) stay
+ * fully forward-compatible with this type.
+ */
+export interface ModelField {
   name: string;
   type?: string;
+  // Common / Mongoose semantics
   required?: boolean;
   unique?: boolean;
   ref?: string;
   default?: string;
   enum?: string;
+  // SQL semantics (all optional)
+  length?: number;
+  precision?: number;
+  scale?: number;
+  primary?: boolean;
+  autoIncrement?: boolean;
+  columnName?: string;
+  nullable?: boolean;
+  relation?: ModelFieldRelation;
 }
+
+/**
+ * @deprecated Use `ModelField` instead. Kept as an alias so existing adapters
+ * can migrate incrementally.
+ */
+export type KoaSchemaField = ModelField;
 
 export interface KoaInterfaceField {
   name: string;
@@ -69,8 +111,12 @@ export interface KoaModelFile {
   name: string;
   relPath: string;
   modelName?: string;
+  /** Which ORM this model was extracted from. Defaults to "mongoose" when omitted. */
+  orm?: OrmKind;
+  /** SQL table name (Prisma `@@map` / TypeORM `@Entity("name")` / Sequelize `tableName`). */
+  tableName?: string;
   interfaces: KoaInterface[];
-  fields: KoaSchemaField[];
+  fields: ModelField[];
 }
 
 export interface KoaServiceFile {
@@ -114,6 +160,11 @@ export interface TsFileInfo {
  */
 export interface KoaRaw {
   framework: "koa" | "express";
+  /**
+   * ORM used to persist models. Defaults to "mongoose" when omitted so
+   * existing payloads keep working. Populated by the adapter's `scan()`.
+   */
+  orm?: OrmKind;
   routes: KoaRouteFile[];
   models: KoaModelFile[];
   services: KoaServiceFile[];

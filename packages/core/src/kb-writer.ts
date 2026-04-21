@@ -20,11 +20,21 @@ import { kebab } from "./utils/path";
 import type {
   KoaRaw,
   ModuleInfo,
+  OrmKind,
   ReactRaw,
   ReactPageInfo,
   ScanResult,
   TsFileInfo,
 } from "./types";
+
+const ORM_LABEL: Record<OrmKind, string> = {
+  mongoose: "Mongoose",
+  prisma: "Prisma",
+  typeorm: "TypeORM",
+  sequelize: "Sequelize",
+};
+
+const isSqlOrm = (orm: OrmKind): boolean => orm !== "mongoose";
 
 const nowStamp = (): string => {
   const d = new Date();
@@ -75,25 +85,52 @@ const writeServerApiDetails = async (raw: KoaRaw, outDir: string): Promise<void>
   }
 };
 
+const modelFileLabel = (raw: KoaRaw, modelName: string): string => {
+  const orm = raw.orm ?? "mongoose";
+  if (orm === "prisma") return "prisma/schema.prisma";
+  if (orm === "typeorm") return `src/entities/${modelName}.ts`;
+  return `server/src/models/${modelName}.ts`;
+};
+
 const writeServerModelIndex = async (raw: KoaRaw, outDir: string): Promise<void> => {
-  const L: string[] = ["# Mongoose Model 索引", ""];
+  const orm = raw.orm ?? "mongoose";
+  const label = ORM_LABEL[orm];
+  const sql = isSqlOrm(orm);
+
+  const L: string[] = [`# ${label} Model 索引`, ""];
   L.push("## Model 总览", "");
-  L.push(
-    "| # | Model 名 | 文件 | 接口数 | 字段数 | 说明 |",
-    "|---|---------|------|--------|--------|------|",
-  );
-  let idx = 1;
-  for (const m of raw.models) {
+  if (sql) {
     L.push(
-      `| ${idx} | ${m.name} | models/${m.name}.ts | ${m.interfaces.length} | ${m.fields.length} | — |`,
+      "| # | Model 名 | 表名 | 文件 | 字段数 | 说明 |",
+      "|---|---------|------|------|--------|------|",
     );
-    idx += 1;
+    let idx = 1;
+    for (const m of raw.models) {
+      const table = m.tableName ?? m.name.toLowerCase();
+      L.push(
+        `| ${idx} | ${m.name} | ${table} | ${modelFileLabel(raw, m.name)} | ${m.fields.length} | — |`,
+      );
+      idx += 1;
+    }
+  } else {
+    L.push(
+      "| # | Model 名 | 文件 | 接口数 | 字段数 | 说明 |",
+      "|---|---------|------|--------|--------|------|",
+    );
+    let idx = 1;
+    for (const m of raw.models) {
+      L.push(
+        `| ${idx} | ${m.name} | models/${m.name}.ts | ${m.interfaces.length} | ${m.fields.length} | — |`,
+      );
+      idx += 1;
+    }
   }
 
   L.push("", "## Model 详情", "");
   for (const m of raw.models) {
     L.push(`### ${m.name}`, "");
-    L.push(`**文件**: server/src/models/${m.name}.ts`, "");
+    L.push(`**文件**: ${modelFileLabel(raw, m.name)}`, "");
+    if (sql && m.tableName) L.push(`**表名**: ${m.tableName}`, "");
 
     for (const iface of m.interfaces) {
       L.push(`**接口 \`${iface.name}\`**:`, "");
@@ -108,17 +145,43 @@ const writeServerModelIndex = async (raw: KoaRaw, outDir: string): Promise<void>
     }
 
     if (m.fields.length > 0) {
-      L.push("**Schema 字段**:", "");
-      L.push(
-        "| 字段 | 类型 | 必填 | 唯一 | 关联 | 默认值 |",
-        "|------|------|------|------|------|--------|",
-      );
-      for (const f of m.fields) {
-        const req = f.required ? "✅" : "—";
-        const uniq = f.unique ? "✅" : "—";
+      if (sql) {
+        L.push("**表字段**:", "");
         L.push(
-          `| ${f.name} | ${f.type ?? "—"} | ${req} | ${uniq} | ${f.ref ?? "—"} | ${f.default ?? "—"} |`,
+          "| 字段 | 列名 | 类型 | PK | 自增 | 唯一 | 可空 | 长度 | 默认值 | 关联 |",
+          "|------|------|------|----|----|------|------|------|--------|------|",
         );
+        for (const f of m.fields) {
+          const pk = f.primary ? "✅" : "—";
+          const ai = f.autoIncrement ? "✅" : "—";
+          const uniq = f.unique ? "✅" : "—";
+          const nullable = f.nullable ? "✅" : "—";
+          const length =
+            f.length !== undefined
+              ? String(f.length)
+              : f.precision !== undefined && f.scale !== undefined
+                ? `${f.precision},${f.scale}`
+                : "—";
+          const relation = f.relation
+            ? `${f.relation.target}${f.relation.foreignKey ? ` (fk=${f.relation.foreignKey})` : ""}`
+            : f.ref ?? "—";
+          L.push(
+            `| ${f.name} | ${f.columnName ?? f.name} | ${f.type ?? "—"} | ${pk} | ${ai} | ${uniq} | ${nullable} | ${length} | ${f.default ?? "—"} | ${relation} |`,
+          );
+        }
+      } else {
+        L.push("**Schema 字段**:", "");
+        L.push(
+          "| 字段 | 类型 | 必填 | 唯一 | 关联 | 默认值 |",
+          "|------|------|------|------|------|--------|",
+        );
+        for (const f of m.fields) {
+          const req = f.required ? "✅" : "—";
+          const uniq = f.unique ? "✅" : "—";
+          L.push(
+            `| ${f.name} | ${f.type ?? "—"} | ${req} | ${uniq} | ${f.ref ?? "—"} | ${f.default ?? "—"} |`,
+          );
+        }
       }
       L.push("");
     }
@@ -225,10 +288,19 @@ const writeServerConfigIndex = async (raw: KoaRaw, outDir: string): Promise<void
   }
   L.push("");
 
+  const orm = raw.orm ?? "mongoose";
+  const dbBlurb =
+    orm === "mongoose"
+      ? "MongoDB 连接管理"
+      : orm === "prisma"
+        ? "Prisma Client 连接管理"
+        : orm === "typeorm"
+          ? "TypeORM DataSource 管理"
+          : "Sequelize 连接管理";
   L.push("## 数据库", "");
   L.push("| # | 文件 | 说明 |", "|---|------|------|");
   for (const db of raw.db) {
-    L.push(`| 1 | db/${path.basename(db.file)} | MongoDB 连接管理 |`);
+    L.push(`| 1 | db/${path.basename(db.file)} | ${dbBlurb} |`);
   }
   L.push("");
 
@@ -248,14 +320,30 @@ const writeChangelog = async (outDir: string, bodySuffix: string): Promise<void>
 
 const writeServerProjectMap = async (mod: ModuleInfo, raw: KoaRaw, outDir: string): Promise<void> => {
   const frameworkLabel = raw.framework === "express" ? "Express" : "Koa";
+  const orm = raw.orm ?? "mongoose";
+  const ormLabel = ORM_LABEL[orm];
+
   const L: string[] = [`# ${mod.name} — 后端项目全景`, ""];
-  L.push(`**技术栈**: ${frameworkLabel} + TypeScript + Mongoose`);
+  L.push(`**技术栈**: ${frameworkLabel} + TypeScript + ${ormLabel}`);
   L.push(`**路径**: ${mod.root}`, "");
-  L.push("## 目录结构", "", "```", "src/");
+  L.push("## 目录结构", "", "```");
+  if (orm === "prisma") {
+    L.push("prisma/");
+    L.push("└── schema.prisma   # Prisma 数据模型");
+    L.push("src/");
+  } else {
+    L.push("src/");
+  }
   L.push("├── index.ts         # 应用入口");
   L.push(`├── routes/          # ${frameworkLabel} 路由`);
   L.push("├── services/        # 业务逻辑");
-  L.push("├── models/          # Mongoose Model");
+  if (orm === "mongoose") {
+    L.push("├── models/          # Mongoose Model");
+  } else if (orm === "typeorm") {
+    L.push("├── entities/        # TypeORM Entity");
+  } else if (orm === "sequelize") {
+    L.push("├── models/          # Sequelize Model");
+  }
   L.push("├── middleware/      # 中间件");
   L.push("├── config/          # 配置");
   L.push("└── db/              # 数据库连接");

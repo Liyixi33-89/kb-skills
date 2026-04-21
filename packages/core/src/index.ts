@@ -14,3 +14,4 @@ export * from "./skill-runner";
 export * from "./utils/fs";
 export * from "./utils/path";
 export * from "./utils/scanner";
+export * from "./utils/orm";
