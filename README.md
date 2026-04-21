@@ -193,6 +193,12 @@ pnpm test
 
 ---
 
+## 🚢 发版流程
+
+详见 [**RELEASING.md**](./RELEASING.md) — 涵盖本地手动发版 / CI 自动发版 / 版本号策略 / 回滚预案 / 常见错误排查。
+
+---
+
 ## 🔗 资源链接
 
 - 📦 npm: <https://www.npmjs.com/package/@kb-skills/cli>
