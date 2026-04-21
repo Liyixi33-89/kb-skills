@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/adapter-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Scan adapter for React 19 + Zustand frontends.",
   "license": "MIT",
   "type": "module",
@@ -15,9 +15,16 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=18.17" },
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --target node18 --tsconfig ./tsconfig.build.json",
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch --target node18 --tsconfig ./tsconfig.build.json",
@@ -32,5 +39,11 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
   },
-  "keywords": ["kb-skills", "adapter", "react", "zustand", "vite"]
+  "keywords": [
+    "kb-skills",
+    "adapter",
+    "react",
+    "zustand",
+    "vite"
+  ]
 }

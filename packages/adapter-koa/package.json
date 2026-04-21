@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/adapter-koa",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Scan adapter for Koa + Mongoose backends.",
   "license": "MIT",
   "type": "module",
@@ -15,9 +15,16 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=18.17" },
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --target node18 --tsconfig ./tsconfig.build.json",
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch --target node18 --tsconfig ./tsconfig.build.json",
@@ -32,5 +39,11 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
   },
-  "keywords": ["kb-skills", "adapter", "koa", "mongoose", "node"]
+  "keywords": [
+    "kb-skills",
+    "adapter",
+    "koa",
+    "mongoose",
+    "node"
+  ]
 }
