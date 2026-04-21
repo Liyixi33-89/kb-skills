@@ -115,4 +115,49 @@ describe("adapter-koa scanServer ORM routing", () => {
     const modelSymbols = mod.symbols.filter((s) => s.kind === "model");
     expect(modelSymbols.map((s) => s.name)).toEqual(["User"]);
   });
+
+  it("routes to Sequelize scanner and populates raw.models from src/models/**.ts", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "api",
+      dependencies: { koa: "^2.15.0", sequelize: "^6.0.0" },
+    });
+    await writeText(
+      path.join(tmp, "src", "models", "user.ts"),
+      `import { DataTypes, Model } from "sequelize";\n\n` +
+        `class User extends Model {}\n` +
+        `User.init({\n` +
+        `  id:    { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },\n` +
+        `  email: { type: DataTypes.STRING(255), unique: true, allowNull: false },\n` +
+        `}, { sequelize, tableName: "users" });\n` +
+        `export default User;\n`,
+    );
+
+    const adapter = createKoaAdapter();
+    const mod = await adapter.scan(tmp);
+
+    expect(mod.raw?.framework).toBe("koa");
+    // @ts-expect-error backend raw has orm
+    expect(mod.raw?.orm).toBe("sequelize");
+    const models = (mod.raw && "models" in mod.raw ? mod.raw.models : []) as Array<{
+      name: string;
+      orm?: string;
+      tableName?: string;
+      fields: Array<{ name: string; primary?: boolean; autoIncrement?: boolean; length?: number; unique?: boolean }>;
+    }>;
+    expect(models).toHaveLength(1);
+    expect(models[0]).toMatchObject({
+      name: "User",
+      orm: "sequelize",
+      tableName: "users",
+    });
+    const id = models[0]!.fields.find((f) => f.name === "id")!;
+    expect(id.primary).toBe(true);
+    expect(id.autoIncrement).toBe(true);
+    const email = models[0]!.fields.find((f) => f.name === "email")!;
+    expect(email.length).toBe(255);
+    expect(email.unique).toBe(true);
+
+    const modelSymbols = mod.symbols.filter((s) => s.kind === "model");
+    expect(modelSymbols.map((s) => s.name)).toEqual(["User"]);
+  });
 });

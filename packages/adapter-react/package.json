@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/adapter-react",
-  "version": "0.0.3",
+  "version": "1.0.0",
   "description": "Scan adapter for React 19 + Zustand frontends.",
   "license": "MIT",
   "type": "module",

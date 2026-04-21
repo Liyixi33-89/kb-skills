@@ -118,4 +118,47 @@ describe("adapter-express scanServer ORM routing", () => {
       foreignKey: "userId",
     });
   });
+
+  it("routes to Sequelize scanner when sequelize-typescript is installed", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "api",
+      dependencies: { express: "^4.21.0", "sequelize-typescript": "^2.0.0" },
+    });
+    await writeText(
+      path.join(tmp, "src", "models", "user.ts"),
+      `import { Table, Column, Model, PrimaryKey, AutoIncrement, Unique, DataType } from "sequelize-typescript";\n\n` +
+        `@Table({ tableName: "users" })\n` +
+        `export class User extends Model<User> {\n` +
+        `  @PrimaryKey\n  @AutoIncrement\n  @Column\n  id!: number;\n\n` +
+        `  @Unique\n  @Column(DataType.STRING(255))\n  email!: string;\n` +
+        `}\n`,
+    );
+
+    const adapter = createExpressAdapter();
+    const mod = await adapter.scan(tmp);
+
+    expect(mod.raw?.framework).toBe("express");
+    // @ts-expect-error backend raw has orm
+    expect(mod.raw?.orm).toBe("sequelize");
+
+    const models = (mod.raw && "models" in mod.raw ? mod.raw.models : []) as Array<{
+      name: string;
+      orm?: string;
+      tableName?: string;
+      fields: Array<{ name: string; primary?: boolean; autoIncrement?: boolean; length?: number; unique?: boolean; type?: string }>;
+    }>;
+    expect(models).toHaveLength(1);
+    expect(models[0]).toMatchObject({
+      name: "User",
+      orm: "sequelize",
+      tableName: "users",
+    });
+    const id = models[0]!.fields.find((f) => f.name === "id")!;
+    expect(id.primary).toBe(true);
+    expect(id.autoIncrement).toBe(true);
+    const email = models[0]!.fields.find((f) => f.name === "email")!;
+    expect(email.type).toBe("STRING");
+    expect(email.length).toBe(255);
+    expect(email.unique).toBe(true);
+  });
 });
