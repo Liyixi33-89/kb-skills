@@ -33,6 +33,9 @@ export interface ReactAdapterOptions {
 
 const REACT_PKG_HINTS = ["react", "react-dom"];
 
+/** Next.js 项目特征：有 `next` 依赖 */
+const isNextJs = (deps: Record<string, string>): boolean => "next" in deps;
+
 const IGNORE_DIRS = new Set([
   "node_modules",
   ".git",
@@ -212,8 +215,20 @@ const extractReactRoutes = (appContent: string): ReactRoute[] => {
 
 const scanReactProject = async (projectRoot: string): Promise<ReactRaw> => {
   const src = path.join(projectRoot, "src");
+
+  // 检测是否为 Next.js 项目
+  let nextJsDetected = false;
+  try {
+    const pkg = JSON.parse(
+      await readFile(path.join(projectRoot, "package.json"), "utf8"),
+    ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+    nextJsDetected = isNextJs(deps);
+  } catch { /* ignore */ }
+
   const raw: ReactRaw = {
     framework: "react",
+    isNextJs: nextJsDetected || undefined,
     pages: [],
     components: [],
     apiFiles: [],
@@ -223,7 +238,34 @@ const scanReactProject = async (projectRoot: string): Promise<ReactRaw> => {
     routes: [],
   };
 
-  // pages (recursive under src/pages)
+  // ── Next.js: app/ directory (App Router) ──────────────────────────────
+  // page.tsx / page.jsx / layout.tsx 等都算页面
+  const appDir = path.join(projectRoot, "app");
+  for (const f of await walkFiles(appDir, [".tsx", ".jsx"], IGNORE_DIRS)) {
+    const stem = path.basename(f, path.extname(f));
+    if (!["page", "layout", "loading", "error", "not-found", "template"].includes(stem)) continue;
+    const info = await scanReactPage(f);
+    if (info) {
+      info.relPath = relPosix(projectRoot, f);
+      // 用目录名作为页面名，更有意义
+      info.name = path.basename(path.dirname(f)) || stem;
+      raw.pages.push(info);
+    }
+  }
+
+  // ── Next.js: pages/ at project root (Pages Router) ───────────────────
+  const rootPagesDir = path.join(projectRoot, "pages");
+  for (const f of await walkFiles(rootPagesDir, [".tsx", ".jsx"], IGNORE_DIRS)) {
+    const stem = path.basename(f, path.extname(f));
+    if (stem.startsWith("_")) continue; // 跳过 _app.tsx / _document.tsx
+    const info = await scanReactPage(f);
+    if (info) {
+      info.relPath = relPosix(projectRoot, f);
+      raw.pages.push(info);
+    }
+  }
+
+  // ── SPA React: src/pages/ ─────────────────────────────────────────────
   const pagesDir = path.join(src, "pages");
   for (const f of await walkFiles(pagesDir, [".tsx", ".jsx"], IGNORE_DIRS)) {
     const info = await scanReactPage(f);
@@ -232,7 +274,7 @@ const scanReactProject = async (projectRoot: string): Promise<ReactRaw> => {
       raw.pages.push(info);
     }
   }
-  // auxiliary .ts/.js inside pages: hooks vs helpers
+  // auxiliary .ts/.js inside src/pages: hooks vs helpers
   for (const f of await walkFiles(pagesDir, [".ts", ".js"], IGNORE_DIRS)) {
     if (f.endsWith(".d.ts")) continue;
     const info = await scanTsFile(f);
@@ -243,31 +285,42 @@ const scanReactProject = async (projectRoot: string): Promise<ReactRaw> => {
     else raw.pages.push(info);
   }
 
-  // components (flat directory)
-  for (const f of await listFiles(path.join(src, "components"), [".tsx", ".jsx"])) {
-    const info = await scanReactComponent(f);
-    if (info) {
-      info.relPath = relPosix(projectRoot, f);
-      raw.components.push(info);
+  // components — src/components/ (SPA) 或根 components/ (Next.js)
+  for (const componentsDir of [path.join(src, "components"), path.join(projectRoot, "components")]) {
+    for (const f of await listFiles(componentsDir, [".tsx", ".jsx"])) {
+      const info = await scanReactComponent(f);
+      if (info) {
+        info.relPath = relPosix(projectRoot, f);
+        raw.components.push(info);
+      }
     }
   }
 
-  // api / store / types
-  for (const f of await listFiles(path.join(src, "api"), [".ts", ".js"])) {
+  // api / store / types — 同时扫描 src/ 和根目录下的约定目录
+  for (const f of [
+    ...await listFiles(path.join(src, "api"), [".ts", ".js"]),
+    ...await listFiles(path.join(projectRoot, "lib"), [".ts", ".js"]),
+  ]) {
     const info = await scanTsFile(f);
     if (info) {
       info.relPath = relPosix(projectRoot, f);
       raw.apiFiles.push(info);
     }
   }
-  for (const f of await listFiles(path.join(src, "store"), [".ts", ".js"])) {
+  for (const f of [
+    ...await listFiles(path.join(src, "store"), [".ts", ".js"]),
+    ...await listFiles(path.join(src, "stores"), [".ts", ".js"]),
+  ]) {
     const info = await scanTsFile(f);
     if (info) {
       info.relPath = relPosix(projectRoot, f);
       raw.storeFiles.push(info);
     }
   }
-  for (const f of await listFiles(path.join(src, "types"), [".ts", ".js"])) {
+  for (const f of [
+    ...await listFiles(path.join(src, "types"), [".ts", ".js"]),
+    ...await listFiles(path.join(projectRoot, "types"), [".ts", ".js"]),
+  ]) {
     if (f.endsWith(".d.ts")) continue;
     const info = await scanTsFile(f);
     if (info) {
@@ -366,6 +419,9 @@ const createReactAdapter = (options: ReactAdapterOptions = {}): ScanAdapter => {
           devDependencies?: Record<string, string>;
         };
         const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+        // Next.js 项目：有 next 依赖（它自带 react + react-dom）
+        if (isNextJs(deps)) return true;
+        // 纯 React SPA：同时有 react 和 react-dom
         return REACT_PKG_HINTS.every((hint) => hint in deps);
       } catch {
         return false;

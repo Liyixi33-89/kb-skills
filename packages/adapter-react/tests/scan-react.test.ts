@@ -581,3 +581,134 @@ export const UserForm = () => (
     expect(raw.uiLibrary!.version).toBe("^5.36.0");
   });
 });
+
+// ─── Next.js support ────────────────────────────────────────────────────────
+
+describe("adapter-react — Next.js support", () => {
+  let tmp: string;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), "kb-skills-nextjs-"));
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  it("detect() returns true for a Next.js project (next dep)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-next-app",
+      dependencies: { next: "^14.0.0", react: "^18.0.0", "react-dom": "^18.0.0" },
+    });
+    const adapter = createReactAdapter();
+    expect(await adapter.detect(tmp)).toBe(true);
+  });
+
+  it("scan() picks up pages from app/ directory (App Router) and sets isNextJs=true", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-next-app",
+      dependencies: { next: "^14.0.0", react: "^18.0.0", "react-dom": "^18.0.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "app", "dashboard", "page.tsx"),
+      `"use client";
+import { useState } from "react";
+export default function DashboardPage() {
+  const [count, setCount] = useState(0);
+  const handleIncrement = () => setCount(c => c + 1);
+  return <div>{count}</div>;
+}
+`,
+    );
+
+    const adapter = createReactAdapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as {
+      isNextJs?: boolean;
+      pages: Array<{ name: string; states?: Array<{ name: string }> }>;
+    };
+
+    expect(raw.isNextJs).toBe(true);
+    expect(raw.pages.length).toBeGreaterThanOrEqual(1);
+    const dashPage = raw.pages.find((p) => p.name === "dashboard");
+    expect(dashPage).toBeDefined();
+    expect(dashPage!.states?.map((s) => s.name)).toContain("count");
+  });
+
+  it("scan() picks up pages from root pages/ (Pages Router) and skips _app.tsx", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-next-pages",
+      dependencies: { next: "^13.0.0", react: "^18.0.0", "react-dom": "^18.0.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "pages", "index.tsx"),
+      `import { useState } from "react";
+export default function HomePage() {
+  const [title, setTitle] = useState("Hello");
+  return <h1>{title}</h1>;
+}
+`,
+    );
+
+    await writeText(
+      path.join(tmp, "pages", "_app.tsx"),
+      `export default function App({ Component, pageProps }: any) {
+  return <Component {...pageProps} />;
+}
+`,
+    );
+
+    const adapter = createReactAdapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as { pages: Array<{ name: string }> };
+    expect(raw.pages.some((p) => p.name === "index")).toBe(true);
+    expect(raw.pages.some((p) => p.name === "_app")).toBe(false);
+  });
+
+  it("scan() picks up components from root components/ (Next.js convention)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-next-app",
+      dependencies: { next: "^14.0.0", react: "^18.0.0", "react-dom": "^18.0.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "components", "Navbar.tsx"),
+      `interface NavbarProps { title: string; }
+export const Navbar = ({ title }: NavbarProps) => <nav>{title}</nav>;
+`,
+    );
+
+    const adapter = createReactAdapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as { components: Array<{ name: string }> };
+    expect(raw.components.some((c) => c.name === "Navbar")).toBe(true);
+  });
+
+  it("scan() picks up lib/ as apiFiles (Next.js convention)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-next-app",
+      dependencies: { next: "^14.0.0", react: "^18.0.0", "react-dom": "^18.0.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "lib", "api.ts"),
+      `export const fetchUser = async (id: string) => fetch(\`/api/users/\${id}\`);
+export const fetchPosts = async () => fetch("/api/posts");
+`,
+    );
+
+    const adapter = createReactAdapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as { apiFiles: Array<{ exports: string[] }> };
+    expect(raw.apiFiles.length).toBeGreaterThanOrEqual(1);
+    const allExports = raw.apiFiles.flatMap((f) => f.exports);
+    expect(allExports).toContain("fetchUser");
+    expect(allExports).toContain("fetchPosts");
+  });
+});

@@ -684,3 +684,179 @@ describe("adapter-vue3 scan() — module metadata", () => {
     expect(mod.name).toBe("admin");
   });
 });
+
+// ─── Nuxt 3 support ──────────────────────────────────────────────────────────
+
+describe("adapter-vue3 — Nuxt 3 support", () => {
+  let tmp: string;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), "kb-skills-nuxt-"));
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  it("detect() returns true for a Nuxt 3 project (nuxt dep, no explicit vue)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-app",
+      devDependencies: { nuxt: "^3.10.0" },
+    });
+    const adapter = createVue3Adapter();
+    expect(await adapter.detect(tmp)).toBe(true);
+  });
+
+  it("detect() returns true for a Nuxt project via @nuxt/kit", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-layer",
+      devDependencies: { "@nuxt/kit": "^3.10.0" },
+    });
+    const adapter = createVue3Adapter();
+    expect(await adapter.detect(tmp)).toBe(true);
+  });
+
+  it("scan() picks up pages from root pages/ and sets isNuxt=true", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-app",
+      devDependencies: { nuxt: "^3.10.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "pages", "index.vue"),
+      `<template><div>Home</div></template>
+<script setup lang="ts">
+const count = ref(0);
+const doubled = computed(() => count.value * 2);
+const handleReset = () => { count.value = 0; };
+</script>
+`,
+    );
+
+    await writeText(
+      path.join(tmp, "pages", "users", "index.vue"),
+      `<template><div>Users</div></template>
+<script setup lang="ts">
+const users = ref([]);
+watch(users, () => { api.fetchCount(); });
+</script>
+`,
+    );
+
+    const adapter = createVue3Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as {
+      isNuxt?: boolean;
+      views: Array<{ name: string; refs?: string[]; computeds?: string[] }>;
+    };
+
+    expect(raw.isNuxt).toBe(true);
+    expect(raw.views.length).toBeGreaterThanOrEqual(1);
+
+    const indexPage = raw.views.find((v) => v.name === "index");
+    expect(indexPage).toBeDefined();
+    expect(indexPage!.refs).toContain("count");
+    expect(indexPage!.computeds).toContain("doubled");
+  });
+
+  it("scan() picks up components from root components/ (Nuxt auto-import convention)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-app",
+      devDependencies: { nuxt: "^3.10.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "components", "AppHeader.vue"),
+      `<template><header>{{ title }}</header></template>
+<script setup lang="ts">
+defineProps<{ title: string; sticky?: boolean }>();
+defineEmits(["close"]);
+</script>
+`,
+    );
+
+    const adapter = createVue3Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as {
+      components: Array<{ name: string; props: Array<{ name: string }>; emits: string[] }>;
+    };
+
+    const header = raw.components.find((c) => c.name === "AppHeader");
+    expect(header).toBeDefined();
+    expect(header!.props.map((p) => p.name)).toContain("title");
+    expect(header!.emits).toContain("close");
+  });
+
+  it("scan() picks up composables from root composables/ (Nuxt auto-import convention)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-app",
+      devDependencies: { nuxt: "^3.10.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "composables", "useAuth.ts"),
+      `export const useAuth = () => {
+  const user = ref(null);
+  return { user };
+};
+`,
+    );
+
+    const adapter = createVue3Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as { composables: Array<{ name: string }> };
+    expect(raw.composables.some((c) => c.name === "useAuth")).toBe(true);
+  });
+
+  it("scan() picks up stores from root stores/ (Nuxt + Pinia convention)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-app",
+      devDependencies: { nuxt: "^3.10.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "stores", "counter.ts"),
+      `import { defineStore } from "pinia";
+export const useCounterStore = defineStore("counter", () => {
+  const count = ref(0);
+  return { count };
+});
+`,
+    );
+
+    const adapter = createVue3Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as { stores: Array<{ storeId?: string; exports: string[] }> };
+    expect(raw.stores.length).toBeGreaterThanOrEqual(1);
+    const counterStore = raw.stores.find((s) => s.storeId === "counter");
+    expect(counterStore).toBeDefined();
+    expect(counterStore!.exports).toContain("useCounterStore");
+  });
+
+  it("scan() picks up utils/ as apiFiles (Nuxt auto-import convention)", async () => {
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "my-nuxt-app",
+      devDependencies: { nuxt: "^3.10.0" },
+    });
+
+    await writeText(
+      path.join(tmp, "utils", "api.ts"),
+      `export const fetchUser = async (id: string) => $fetch(\`/api/users/\${id}\`);
+export const fetchPosts = async () => $fetch("/api/posts");
+`,
+    );
+
+    const adapter = createVue3Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as { apiFiles: Array<{ exports: string[] }> };
+    expect(raw.apiFiles.length).toBeGreaterThanOrEqual(1);
+    const allExports = raw.apiFiles.flatMap((f) => f.exports);
+    expect(allExports).toContain("fetchUser");
+    expect(allExports).toContain("fetchPosts");
+  });
+});

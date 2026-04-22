@@ -374,16 +374,29 @@ const writeReactProjectMap = async (
 ): Promise<void> => {
   const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
   const uiLabel = raw.uiLibrary ? raw.uiLibrary.name : "(no UI lib detected)";
-  L.push(`**技术栈**: React + TypeScript + ${uiLabel} + Zustand`);
-  L.push(`**路径**: ${mod.root}`, "");
-  L.push("## 目录结构", "", "```", "src/");
-  L.push("├── App.tsx           # 根组件 + 路由");
-  L.push("├── api/              # API 请求封装");
-  L.push("├── components/       # 公共组件");
-  L.push("├── pages/            # 页面组件");
-  L.push("├── store/            # Zustand 状态管理");
-  L.push("└── types/            # TypeScript 类型定义");
-  L.push("```", "");
+
+  if (raw.isNextJs) {
+    L.push(`**技术栈**: Next.js + React + TypeScript + ${uiLabel}`);
+    L.push(`**路径**: ${mod.root}`, "");
+    L.push("## 目录结构", "", "```");
+    L.push("├── app/              # App Router 页面 (Next.js 13+)");
+    L.push("├── pages/            # Pages Router 页面 (可选)");
+    L.push("├── components/       # 公共组件");
+    L.push("├── lib/              # 工具函数 / API 封装");
+    L.push("└── types/            # TypeScript 类型定义");
+    L.push("```", "");
+  } else {
+    L.push(`**技术栈**: React + TypeScript + ${uiLabel} + Zustand`);
+    L.push(`**路径**: ${mod.root}`, "");
+    L.push("## 目录结构", "", "```", "src/");
+    L.push("├── App.tsx           # 根组件 + 路由");
+    L.push("├── api/              # API 请求封装");
+    L.push("├── components/       # 公共组件");
+    L.push("├── pages/            # 页面组件");
+    L.push("├── store/            # Zustand 状态管理");
+    L.push("└── types/            # TypeScript 类型定义");
+    L.push("```", "");
+  }
 
   if (raw.routes.length > 0) {
     L.push("## 路由表", "", "| 路径 | 组件 |", "|------|------|");
@@ -590,17 +603,32 @@ const writeVue3ProjectMap = async (
 ): Promise<void> => {
   const uiLabel = raw.uiLibrary ? raw.uiLibrary.name : "(no UI lib detected)";
   const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
-  L.push(`**技术栈**: Vue 3 + TypeScript + ${uiLabel} + Pinia`);
-  L.push(`**路径**: ${mod.root}`, "");
-  L.push("## 目录结构", "", "```", "src/");
-  L.push("├── views/            # 页面视图 (.vue)");
-  L.push("├── components/       # 公共组件 (.vue)");
-  L.push("├── composables/      # 组合式函数 (useXxx)");
-  L.push("├── stores/           # Pinia 状态管理");
-  L.push("├── api/              # API 请求封装");
-  L.push("├── router/           # vue-router 路由");
-  L.push("└── types/            # TypeScript 类型定义");
-  L.push("```", "");
+
+  if (raw.isNuxt) {
+    L.push(`**技术栈**: Nuxt 3 + Vue 3 + TypeScript + ${uiLabel}`);
+    L.push(`**路径**: ${mod.root}`, "");
+    L.push("## 目录结构", "", "```");
+    L.push("├── pages/            # 页面（基于文件系统路由）");
+    L.push("├── components/       # 公共组件（自动导入）");
+    L.push("├── composables/      # 组合式函数（自动导入）");
+    L.push("├── stores/           # Pinia 状态管理");
+    L.push("├── utils/            # 工具函数（自动导入）");
+    L.push("├── server/           # 服务端 API (server/api/)");
+    L.push("└── types/            # TypeScript 类型定义");
+    L.push("```", "");
+  } else {
+    L.push(`**技术栈**: Vue 3 + TypeScript + ${uiLabel} + Pinia`);
+    L.push(`**路径**: ${mod.root}`, "");
+    L.push("## 目录结构", "", "```", "src/");
+    L.push("├── views/            # 页面视图 (.vue)");
+    L.push("├── components/       # 公共组件 (.vue)");
+    L.push("├── composables/      # 组合式函数 (useXxx)");
+    L.push("├── stores/           # Pinia 状态管理");
+    L.push("├── api/              # API 请求封装");
+    L.push("├── router/           # vue-router 路由");
+    L.push("└── types/            # TypeScript 类型定义");
+    L.push("```", "");
+  }
 
   if (raw.routes.length > 0) {
     L.push("## 路由表", "", "| 路径 | 组件 | 名称 |", "|------|------|------|");

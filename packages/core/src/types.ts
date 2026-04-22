@@ -223,6 +223,8 @@ export interface UiLibraryInfo {
 
 export interface ReactRaw {
   framework: "react";
+  /** True when the project has a `next` dependency (Next.js App/Pages Router). */
+  isNextJs?: boolean;
   pages: Array<ReactPageInfo | TsFileInfo>;
   components: ReactComponentInfo[];
   apiFiles: TsFileInfo[];
@@ -301,6 +303,8 @@ export interface Vue3StoreInfo extends TsFileInfo {
  */
 export interface Vue3Raw {
   framework: "vue3";
+  /** True when the project has a `nuxt` dependency (Nuxt 3). */
+  isNuxt?: boolean;
   /** SFC files from `src/views/` and `src/pages/`. */
   views: Vue3PageInfo[];
   /** SFC files from `src/components/`. */

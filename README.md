@@ -22,12 +22,12 @@
 
 | 包 | 版本 | 说明 |
 |---|---|---|
-| [`@kb-skills/core`](./packages/core) | `0.2.0` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
-| [`@kb-skills/cli`](./packages/cli) | `0.0.5` | 命令行工具 `kb-skills` |
+| [`@kb-skills/core`](./packages/core) | `0.2.3` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
+| [`@kb-skills/cli`](./packages/cli) | `0.0.6` | 命令行工具 `kb-skills` |
 | [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.0` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.0` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
-| [`@kb-skills/adapter-react`](./packages/adapter-react) | `2.0.0` | React 19 + Zustand 前端（支持 Ant Design） |
-| [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.0.0` | Vue 3 + Pinia 前端（支持 Element Plus / Naive UI） |
+| [`@kb-skills/adapter-react`](./packages/adapter-react) | `2.1.0` | React 19 / **Next.js 13+** + Zustand 前端（支持 Ant Design） |
+| [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.1.0` | Vue 3 / **Nuxt 3** + Pinia 前端（支持 Element Plus / Naive UI） |
 | [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.0` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
 
 ---
@@ -37,19 +37,28 @@
 ### 方式 1：全栈 monorepo（推荐）
 
 ```bash
+# React + Koa
 npm i -D @kb-skills/cli @kb-skills/adapter-koa @kb-skills/adapter-react
-# 或 Vue 3 全栈
+# Vue 3 + Koa
 npm i -D @kb-skills/cli @kb-skills/adapter-koa @kb-skills/adapter-vue3
-# 或 Vue 2 遗留项目
+# Next.js（全栈，adapter-react 自动识别）
+npm i -D @kb-skills/cli @kb-skills/adapter-react
+# Nuxt 3（全栈，adapter-vue3 自动识别）
+npm i -D @kb-skills/cli @kb-skills/adapter-vue3
+# Vue 2 遗留项目
 npm i -D @kb-skills/cli @kb-skills/adapter-koa @kb-skills/adapter-vue2
 ```
 
-### 方式 2：纯前端项目
+### 方式 2：纯前端 / 全栈框架项目
 
 ```bash
-# React
+# React SPA
 npm i -D @kb-skills/cli @kb-skills/adapter-react
-# Vue 3
+# Next.js（App Router / Pages Router 均支持）
+npm i -D @kb-skills/cli @kb-skills/adapter-react
+# Vue 3 SPA
+npm i -D @kb-skills/cli @kb-skills/adapter-vue3
+# Nuxt 3（文件路由 / 自动导入均支持）
 npm i -D @kb-skills/cli @kb-skills/adapter-vue3
 # Vue 2
 npm i -D @kb-skills/cli @kb-skills/adapter-vue2
@@ -161,6 +170,40 @@ export default defineConfig({
 });
 ```
 
+### Next.js 全栈示例
+
+> `adapter-react` 自动识别 `next` 依赖，扫描 `app/`（App Router）和根 `pages/`（Pages Router）。
+
+```ts
+import { defineConfig } from "@kb-skills/cli/config";
+import reactAdapter from "@kb-skills/adapter-react";
+
+export default defineConfig({
+  kbRoot: "./kb",
+  modules: [
+    // Next.js 是全栈框架，只需一个模块
+    { name: "web", path: ".", adapter: reactAdapter() },
+  ],
+});
+```
+
+### Nuxt 3 全栈示例
+
+> `adapter-vue3` 自动识别 `nuxt` 依赖，扫描根目录 `pages/`、`components/`、`composables/`、`stores/`、`utils/`。
+
+```ts
+import { defineConfig } from "@kb-skills/cli/config";
+import vue3Adapter from "@kb-skills/adapter-vue3";
+
+export default defineConfig({
+  kbRoot: "./kb",
+  modules: [
+    // Nuxt 3 是全栈框架，只需一个模块
+    { name: "web", path: ".", adapter: vue3Adapter() },
+  ],
+});
+```
+
 ---
 
 ## 🧩 适配器一览
@@ -176,8 +219,8 @@ export default defineConfig({
 
 | 适配器 | 框架 | UI 库检测 |
 |---|---|---|
-| `@kb-skills/adapter-react` | React 19 | Ant Design · Ant Design Mobile · MUI · Chakra UI |
-| `@kb-skills/adapter-vue3` | Vue 3 + Pinia | Element Plus · Naive UI · Ant Design |
+| `@kb-skills/adapter-react` | React 19 · **Next.js 13+** | Ant Design · Ant Design Mobile · MUI · Chakra UI |
+| `@kb-skills/adapter-vue3` | Vue 3 · **Nuxt 3** + Pinia | Element Plus · Naive UI · Ant Design |
 | `@kb-skills/adapter-vue2` | Vue 2 + Vuex | Element UI · Vant · Ant Design |
 
 ### 自动检测规则

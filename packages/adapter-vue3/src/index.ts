@@ -39,6 +39,10 @@ export interface Vue3AdapterOptions {
 
 const VUE3_PKG_HINT = "vue";
 
+/** Nuxt 3 项目特征：有 nuxt / @nuxt/core / @nuxt/kit 依赖 */
+const isNuxt = (deps: Record<string, string>): boolean =>
+  "nuxt" in deps || "@nuxt/core" in deps || "@nuxt/kit" in deps;
+
 const IGNORE_DIRS = new Set([
   "node_modules",
   ".git",
@@ -322,8 +326,20 @@ const detectVue3UiLibrary = async (
 
 const scanVue3Project = async (projectRoot: string): Promise<Vue3Raw> => {
   const src = path.join(projectRoot, "src");
+
+  // 检测是否为 Nuxt 项目
+  let nuxtDetected = false;
+  try {
+    const pkg = JSON.parse(
+      await readFile(path.join(projectRoot, "package.json"), "utf8"),
+    ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+    nuxtDetected = isNuxt(deps);
+  } catch { /* ignore */ }
+
   const raw: Vue3Raw = {
     framework: "vue3",
+    isNuxt: nuxtDetected || undefined,
     views: [],
     components: [],
     composables: [],
@@ -332,6 +348,49 @@ const scanVue3Project = async (projectRoot: string): Promise<Vue3Raw> => {
     typesFiles: [],
     routes: [],
   };
+
+  // ── Nuxt: 根目录 pages/ ───────────────────────────────────────────────
+  // Nuxt 约定：pages/ 在项目根目录，不在 src/ 下
+  const nuxtPagesDir = path.join(projectRoot, "pages");
+  for (const f of await walkFiles(nuxtPagesDir, [".vue"], IGNORE_DIRS)) {
+    const info = await scanVue3View(f);
+    if (info) {
+      info.relPath = relPosix(projectRoot, f);
+      raw.views.push(info);
+    }
+  }
+
+  // ── Nuxt: 根目录 components/ ─────────────────────────────────────────
+  const nuxtComponentsDir = path.join(projectRoot, "components");
+  for (const f of await listFiles(nuxtComponentsDir, [".vue"])) {
+    const info = await scanVue3Component(f);
+    if (info) {
+      info.relPath = relPosix(projectRoot, f);
+      raw.components.push(info);
+    }
+  }
+
+  // ── Nuxt: 根目录 composables/ ────────────────────────────────────────
+  const nuxtComposablesDir = path.join(projectRoot, "composables");
+  for (const f of await listFiles(nuxtComposablesDir, [".ts", ".js"])) {
+    if (f.endsWith(".d.ts")) continue;
+    const info = await scanVue3Composable(f);
+    if (info) {
+      info.relPath = relPosix(projectRoot, f);
+      raw.composables.push(info);
+    }
+  }
+
+  // ── Nuxt: 根目录 stores/ ─────────────────────────────────────────────
+  const nuxtStoresDir = path.join(projectRoot, "stores");
+  for (const f of await listFiles(nuxtStoresDir, [".ts", ".js"])) {
+    if (f.endsWith(".d.ts")) continue;
+    const info = await scanVue3Store(f);
+    if (info) {
+      info.relPath = relPosix(projectRoot, f);
+      raw.stores.push(info);
+    }
+  }
 
   // views — src/views/ (primary) + src/pages/ (compatibility)
   for (const dir of [path.join(src, "views"), path.join(src, "pages")]) {
@@ -373,8 +432,11 @@ const scanVue3Project = async (projectRoot: string): Promise<Vue3Raw> => {
     }
   }
 
-  // api files — src/api/
-  for (const f of await listFiles(path.join(src, "api"), [".ts", ".js"])) {
+  // api files — src/api/ 或 Nuxt 根目录 utils/
+  for (const f of [
+    ...await listFiles(path.join(src, "api"), [".ts", ".js"]),
+    ...await listFiles(path.join(projectRoot, "utils"), [".ts", ".js"]),
+  ]) {
     const info = await scanTsFile(f);
     if (info) {
       info.relPath = relPosix(projectRoot, f);
@@ -382,8 +444,11 @@ const scanVue3Project = async (projectRoot: string): Promise<Vue3Raw> => {
     }
   }
 
-  // types files — src/types/
-  for (const f of await listFiles(path.join(src, "types"), [".ts", ".js"])) {
+  // types files — src/types/ 或 Nuxt 根目录 types/
+  for (const f of [
+    ...await listFiles(path.join(src, "types"), [".ts", ".js"]),
+    ...await listFiles(path.join(projectRoot, "types"), [".ts", ".js"]),
+  ]) {
     if (f.endsWith(".d.ts")) continue;
     const info = await scanTsFile(f);
     if (info) {
@@ -502,9 +567,11 @@ const createVue3Adapter = (options: Vue3AdapterOptions = {}): ScanAdapter => {
           devDependencies?: Record<string, string>;
         };
         const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+        // Nuxt 3 项目：有 nuxt 依赖（它自带 vue@3.x）
+        if (isNuxt(deps)) return true;
+        // 纯 Vue 3 SPA：有 vue@3.x 依赖
         const vueVersion = deps[VUE3_PKG_HINT];
         if (!vueVersion) return false;
-        // Accept ^3.x, ~3.x, 3.x.x, >=3.0.0, etc.
         return /^[\^~>=]*3\./.test(vueVersion);
       } catch {
         return false;
