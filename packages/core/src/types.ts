@@ -233,7 +233,91 @@ export interface ReactRaw {
   uiLibrary?: UiLibraryInfo;
 }
 
-export type ScanRaw = KoaRaw | ReactRaw;
+// ─── Vue 3 types ─────────────────────────────────────────────────────────────
+
+/**
+ * Metadata extracted from a Vue 3 SFC view/page file.
+ * Covers both `<script setup>` and Options API `setup()` authoring styles.
+ */
+export interface Vue3PageInfo extends TsFileInfo {
+  /** Component / file stem name, e.g. "UserList". */
+  name: string;
+  /** `ref()` / `reactive()` variable names declared in setup. */
+  refs: string[];
+  /** `computed()` variable names. */
+  computeds: string[];
+  /** Total number of `watch()` / `watchEffect()` calls. */
+  watchCount: number;
+  /** Deduplicated `api.xxx` call names. */
+  apiCalls: string[];
+  /** `const handleXxx =` handler names. */
+  handlers: string[];
+}
+
+/**
+ * Metadata extracted from a Vue 3 SFC component file.
+ */
+export interface Vue3ComponentInfo extends TsFileInfo {
+  /** Component name (file stem). */
+  name: string;
+  /** Props extracted from `defineProps<{ ... }>()` or `defineProps({ ... })`. */
+  props: KoaInterfaceField[];
+  /** Emit event names from `defineEmits<{ ... }>()` or `defineEmits([...])`. */
+  emits: string[];
+}
+
+/**
+ * A single route entry extracted from `src/router/index.ts`.
+ */
+export interface Vue3Route {
+  path: string;
+  component: string;
+  /** Optional route name string. */
+  name?: string;
+}
+
+/**
+ * Metadata for a Vue 3 composable file (`src/composables/useXxx.ts`).
+ */
+export interface Vue3ComposableInfo extends TsFileInfo {
+  /** Composable function name (e.g. "useUserData"). */
+  name: string;
+}
+
+/**
+ * Metadata for a Pinia store file (`src/stores/*.ts`).
+ */
+export interface Vue3StoreInfo extends TsFileInfo {
+  /** Store id string passed to `defineStore("id", ...)`, if detectable. */
+  storeId?: string;
+}
+
+/**
+ * Raw payload emitted by `adapter-vue3`.
+ *
+ * Layout convention: `src/{views,pages,components,composables,stores,api,types,router}`.
+ */
+export interface Vue3Raw {
+  framework: "vue3";
+  /** SFC files from `src/views/` and `src/pages/`. */
+  views: Vue3PageInfo[];
+  /** SFC files from `src/components/`. */
+  components: Vue3ComponentInfo[];
+  /** Composable files from `src/composables/`. */
+  composables: Vue3ComposableInfo[];
+  /** Pinia store files from `src/stores/`. */
+  stores: Vue3StoreInfo[];
+  /** API helper files from `src/api/`. */
+  apiFiles: TsFileInfo[];
+  /** Type definition files from `src/types/`. */
+  typesFiles: TsFileInfo[];
+  /** Routes extracted from `src/router/index.ts`. */
+  routes: Vue3Route[];
+  /** Detected UI component library (Element Plus, Naive UI, etc.). */
+  uiLibrary?: UiLibraryInfo;
+}
+
+export type ScanRaw = KoaRaw | ReactRaw | Vue3Raw;
 
 export interface ModuleInfo {
   name: string;

@@ -1,0 +1,42 @@
+{
+  "name": "@kb-skills/adapter-vue3",
+  "version": "1.0.0",
+  "description": "Scan adapter for Vue 3 + Pinia frontends (with Element Plus UI detection).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --target node18 --tsconfig ./tsconfig.build.json",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch --target node18 --tsconfig ./tsconfig.build.json",
+    "typecheck": "tsc -b --pretty"
+  },
+  "peerDependencies": {
+    "@kb-skills/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@kb-skills/core": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
