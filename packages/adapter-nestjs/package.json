@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/adapter-nestjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scan adapter for NestJS backends (Mongoose / Prisma / TypeORM / Sequelize).",
   "license": "MIT",
   "type": "module",

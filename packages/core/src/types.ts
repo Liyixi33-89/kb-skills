@@ -36,7 +36,7 @@ export type ModuleKind = "frontend" | "backend";
  * The set is intentionally open — adapters declare it on `KoaRaw.orm` and
  * `KoaModelFile.orm` so `kb-writer` can render ORM-specific tables.
  */
-export type OrmKind = "mongoose" | "prisma" | "typeorm" | "sequelize";
+export type OrmKind = "mongoose" | "prisma" | "typeorm" | "sequelize" | "drizzle";
 
 // ─── Adapter-specific raw payloads (used by kb-writer to emit detailed KB) ───
 

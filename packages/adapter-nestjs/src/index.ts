@@ -22,10 +22,9 @@ import {
   scanPrismaSchemaFile,
   scanTypeormEntities,
   scanSequelizeModels,
-  type KoaInterface,
+  scanMongooseModel,
+  scanDrizzleSchemas,
   type KoaInterfaceField,
-  type KoaModelFile,
-  type KoaSchemaField,
   type ModuleInfo,
   type NestControllerFile,
   type NestDtoFile,
@@ -248,64 +247,6 @@ const scanNestModule = async (file: string): Promise<NestModuleFile | null> => {
   };
 };
 
-// ─── mongoose model scanner (reused from express adapter) ────────────────────
-
-const scanMongooseModel = async (file: string): Promise<KoaModelFile | null> => {
-  const content = await readText(file);
-  if (content === null) return null;
-
-  const interfaces: KoaInterface[] = [];
-  const ifaceRe = /(?:export\s+)?interface\s+(\w+)(?:\s+extends\s+\w+)?\s*\{([^}]+)\}/gs;
-  for (const m of content.matchAll(ifaceRe)) {
-    const name = m[1]!;
-    const body = m[2]!;
-    const fields: KoaInterfaceField[] = [];
-    for (const fm of body.matchAll(/(\w+)(\?)?:\s*([^;\n]+)/g)) {
-      fields.push({ name: fm[1]!, optional: Boolean(fm[2]), type: fm[3]!.trim().replace(/;$/, "") });
-    }
-    interfaces.push({ name, fields });
-  }
-
-  const fields: KoaSchemaField[] = [];
-  const schemaMatch = content.match(/new\s+(?:mongoose\.)?Schema\s*\(\s*\{([\s\S]*?)\}\s*[,)]/);
-  if (schemaMatch) {
-    const schemaBody = schemaMatch[1]!;
-    for (const fm of schemaBody.matchAll(/(\w+)\s*:\s*\{([^}]+)\}/g)) {
-      const fieldName = fm[1]!;
-      const body = fm[2]!;
-      const info: KoaSchemaField = { name: fieldName };
-      const typeMatch = body.match(/type\s*:\s*(\w+)/);
-      if (typeMatch) info.type = typeMatch[1]!;
-      info.required = /required/i.test(body) && /true/i.test(body);
-      info.unique = /unique/i.test(body) && /true/i.test(body);
-      const refMatch = body.match(/ref\s*:\s*["'](\w+)["']/);
-      if (refMatch) info.ref = refMatch[1]!;
-      const defMatch = body.match(/default\s*:\s*([^,\n]+)/);
-      if (defMatch) info.default = defMatch[1]!.trim();
-      const enumMatch = body.match(/enum\s*:\s*\[([^\]]+)\]/);
-      if (enumMatch) info.enum = enumMatch[1]!.trim();
-      fields.push(info);
-    }
-    for (const fm of schemaBody.matchAll(
-      /(\w+)\s*:\s*(String|Number|Boolean|Date|ObjectId|Mixed|Buffer|Map)\b/g,
-    )) {
-      if (!fields.some((f) => f.name === fm[1]!)) {
-        fields.push({ name: fm[1]!, type: fm[2]! });
-      }
-    }
-  }
-
-  const modelMatch = content.match(/mongoose\.model\s*[<(]\s*["']?(\w+)/);
-
-  return {
-    name: path.basename(file, path.extname(file)),
-    relPath: file,
-    modelName: modelMatch ? modelMatch[1]! : undefined,
-    interfaces,
-    fields,
-  };
-};
-
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /**
@@ -377,6 +318,8 @@ const scanNestServer = async (serverRoot: string): Promise<NestRaw> => {
     raw.models = await scanTypeormEntities(serverRoot);
   } else if (orm === "sequelize") {
     raw.models = await scanSequelizeModels(serverRoot);
+  } else if (orm === "drizzle") {
+    raw.models = await scanDrizzleSchemas(serverRoot);
   } else {
     // mongoose — scan src/schemas/ and src/models/
     for (const dir of ["schemas", "models"]) {

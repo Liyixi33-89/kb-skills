@@ -35,6 +35,7 @@ const ORM_LABEL: Record<OrmKind, string> = {
   prisma: "Prisma",
   typeorm: "TypeORM",
   sequelize: "Sequelize",
+  drizzle: "Drizzle",
 };
 
 const isSqlOrm = (orm: OrmKind): boolean => orm !== "mongoose";

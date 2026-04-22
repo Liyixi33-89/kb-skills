@@ -1,7 +1,7 @@
 {
-  "name": "@kb-skills/adapter-express",
-  "version": "2.0.1",
-  "description": "Scan adapter for Express + Mongoose backends.",
+  "name": "@kb-skills/adapter-react-native",
+  "version": "1.0.1",
+  "description": "Scan adapter for React Native (Expo / bare workflow) projects.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,15 +35,9 @@
   },
   "devDependencies": {
     "@kb-skills/core": "workspace:*",
-    "@types/node": "^22.10.2",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
-  },
-  "keywords": [
-    "kb-skills",
-    "adapter",
-    "express",
-    "mongoose",
-    "node"
-  ]
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
 }

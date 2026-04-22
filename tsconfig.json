@@ -9,6 +9,7 @@
     { "path": "./packages/adapter-react" },
     { "path": "./packages/adapter-vue3" },
     { "path": "./packages/adapter-vue2" },
-    { "path": "./packages/adapter-nestjs" }
+    { "path": "./packages/adapter-nestjs" },
+    { "path": "./packages/adapter-react-native" }
   ]
 }

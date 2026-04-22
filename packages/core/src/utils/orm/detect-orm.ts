@@ -15,6 +15,7 @@ export const detectOrm = (deps: DepsMap): OrmKind | null => {
   if ("prisma" in deps || "@prisma/client" in deps) return "prisma";
   if ("typeorm" in deps) return "typeorm";
   if ("sequelize" in deps || "sequelize-typescript" in deps) return "sequelize";
+  if ("drizzle-orm" in deps) return "drizzle";
   return null;
 };
 
