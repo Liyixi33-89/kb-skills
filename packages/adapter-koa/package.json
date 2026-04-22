@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/adapter-koa",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Scan adapter for Koa + Mongoose backends.",
   "license": "MIT",
   "type": "module",

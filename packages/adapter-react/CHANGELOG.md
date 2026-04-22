@@ -1,5 +1,12 @@
 # @kb-skills/adapter-react
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @kb-skills/core@0.2.0
+
 ## 1.0.0
 
 ### Patch Changes

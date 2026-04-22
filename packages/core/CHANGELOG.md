@@ -1,5 +1,26 @@
 # @kb-skills/core
 
+## 0.2.0
+
+### Minor Changes
+
+- Initial release of `adapter-vue3` — Vue 3 + Pinia scan adapter with Element Plus UI detection.
+
+  **`@kb-skills/adapter-vue3`** _(new package — 1.0.0)_
+  - `detect()`: recognises Vue 3 projects via `vue ^3.x` in `package.json`
+  - Scans `src/views/` + `src/pages/` (`.vue`) → `raw.views` with `ref / computed / watch / apiCalls / handlers`
+  - Scans `src/components/` → `raw.components` with `defineProps` (TS generic) + `defineEmits` (array & TS style)
+  - Scans `src/composables/` → `raw.composables`
+  - Scans `src/stores/` (Pinia) → `raw.stores` with `storeId` from `defineStore("id", ...)`
+  - Scans `src/api/` + `src/types/` → `raw.apiFiles` / `raw.typesFiles`
+  - Extracts routes from `src/router/index.ts` → `raw.routes` (`path / component / name`)
+  - UI library detection (priority: `element-plus` → `naive-ui` → `antd` → …) → `raw.uiLibrary`
+  - 24 integration tests, all passing
+
+  **`@kb-skills/core`** _(minor — new Vue 3 types)_
+  - New interfaces: `Vue3PageInfo`, `Vue3ComponentInfo`, `Vue3Route`, `Vue3ComposableInfo`, `Vue3StoreInfo`, `Vue3Raw`
+  - `ScanRaw` union type now includes `Vue3Raw`
+
 ## 0.1.0
 
 ### Minor Changes
