@@ -1,5 +1,15 @@
 # @kb-skills/cli
 
+## 0.1.0
+
+### Minor Changes
+
+- **`stack-detector`** — NestJS detection + glob workspace support:
+  - `DetectedStack` now includes `"nestjs"`
+  - Detects `@nestjs/core` / `@nestjs/common` in `package.json`
+  - Workspace glob patterns (`packages/*`, `apps/*`) are now expanded by reading the directory, instead of being silently skipped
+- **`init` command** — maps `nestjs` stack to `@kb-skills/adapter-nestjs`
+
 ## 0.0.5
 
 ### Patch Changes

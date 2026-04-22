@@ -413,7 +413,90 @@ export interface Vue2Raw {
   uiLibrary?: UiLibraryInfo;
 }
 
-export type ScanRaw = KoaRaw | ReactRaw | Vue3Raw | Vue2Raw;
+// ─── NestJS types ────────────────────────────────────────────────────────────
+
+/** A single HTTP endpoint extracted from a NestJS controller. */
+export interface NestEndpoint {
+  method: string;
+  path: string;
+  /** Handler method name in the controller class. */
+  handler: string;
+  /** Guard names applied via @UseGuards(). */
+  guards: string[];
+}
+
+/** Metadata for a NestJS controller file. */
+export interface NestControllerFile {
+  name: string;
+  relPath: string;
+  /** Route prefix from @Controller('prefix'). */
+  prefix: string;
+  endpoints: NestEndpoint[];
+}
+
+/** Metadata for a NestJS service / provider file. */
+export interface NestServiceFile {
+  name: string;
+  relPath: string;
+  exports: string[];
+  dependencies: {
+    models: string[];
+    services: string[];
+    external: string[];
+  };
+}
+
+/** Metadata for a NestJS guard / interceptor / pipe / filter file. */
+export interface NestProviderFile {
+  name: string;
+  relPath: string;
+  /** "guard" | "interceptor" | "pipe" | "filter" */
+  providerKind: string;
+  exports: string[];
+}
+
+/** Metadata for a NestJS DTO file. */
+export interface NestDtoFile {
+  name: string;
+  relPath: string;
+  classes: string[];
+  fields: KoaInterfaceField[];
+}
+
+/** Metadata for a NestJS module file. */
+export interface NestModuleFile {
+  name: string;
+  relPath: string;
+  moduleName: string;
+  imports: string[];
+  controllers: string[];
+  providers: string[];
+  moduleExports: string[];
+}
+
+/**
+ * Raw payload emitted by `adapter-nestjs`.
+ *
+ * Layout convention:
+ *   src/{modules,controllers,services,entities,dto,guards,interceptors,pipes,filters,config}
+ */
+export interface NestRaw {
+  framework: "nestjs";
+  orm?: OrmKind;
+  controllers: NestControllerFile[];
+  services: NestServiceFile[];
+  models: KoaModelFile[];
+  guards: NestProviderFile[];
+  interceptors: NestProviderFile[];
+  pipes: NestProviderFile[];
+  filters: NestProviderFile[];
+  dtos: NestDtoFile[];
+  modules: NestModuleFile[];
+  config: TsFileInfo[];
+  entry?: TsFileInfo;
+}
+
+export type ScanRaw = KoaRaw | ReactRaw | Vue3Raw | Vue2Raw | NestRaw;
 
 export interface ModuleInfo {
   name: string;

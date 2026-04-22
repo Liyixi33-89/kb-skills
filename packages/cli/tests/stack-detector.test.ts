@@ -119,6 +119,20 @@ describe("detectStack", () => {
     expect(res.candidateModules[0]?.stack).toBe("nextjs");
   });
 
+  it("detects a NestJS project via @nestjs/core", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-nest-api",
+        dependencies: { "@nestjs/core": "^10.0.0", "@nestjs/common": "^10.0.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["nestjs"]);
+    expect(res.candidateModules[0]?.stack).toBe("nestjs");
+  });
+
   it("detects a Nuxt project via 'nuxt' dep (takes priority over vue)", async () => {
     await writeFile(
       path.join(tmp, "package.json"),
@@ -144,5 +158,63 @@ describe("detectStack", () => {
 
     const res = await detectStack(tmp);
     expect(res.stacks).toEqual(["nuxt"]);
+  });
+
+  it("expands glob workspace pattern 'packages/*'", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "root",
+        private: true,
+        workspaces: ["packages/*"],
+      }),
+    );
+    await mkdir(path.join(tmp, "packages", "server"), { recursive: true });
+    await mkdir(path.join(tmp, "packages", "web"), { recursive: true });
+    await writeFile(
+      path.join(tmp, "packages", "server", "package.json"),
+      JSON.stringify({ name: "server", dependencies: { koa: "^2.15.0" } }),
+    );
+    await writeFile(
+      path.join(tmp, "packages", "web", "package.json"),
+      JSON.stringify({ name: "web", dependencies: { react: "^19.0.0" } }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.isMonorepo).toBe(true);
+    expect(new Set(res.stacks)).toEqual(new Set(["koa", "react"]));
+    expect(res.candidateModules.map((m) => m.name).sort()).toEqual(["server", "web"]);
+    // relPath should be packages/server and packages/web
+    const relPaths = res.candidateModules.map((m) => m.relPath).sort();
+    expect(relPaths[0]).toContain("packages");
+  });
+
+  it("expands glob workspace pattern 'apps/*' and skips dirs without package.json", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "root",
+        private: true,
+        workspaces: ["apps/*"],
+      }),
+    );
+    await mkdir(path.join(tmp, "apps", "backend"), { recursive: true });
+    await mkdir(path.join(tmp, "apps", "frontend"), { recursive: true });
+    // apps/empty has no package.json
+    await mkdir(path.join(tmp, "apps", "empty"), { recursive: true });
+    await writeFile(
+      path.join(tmp, "apps", "backend", "package.json"),
+      JSON.stringify({ name: "backend", dependencies: { express: "^4.21.0" } }),
+    );
+    await writeFile(
+      path.join(tmp, "apps", "frontend", "package.json"),
+      JSON.stringify({ name: "frontend", dependencies: { vue: "^3.4.0" } }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.isMonorepo).toBe(true);
+    expect(new Set(res.stacks)).toEqual(new Set(["express", "vue3"]));
+    // 'empty' dir has no package.json, should not appear
+    expect(res.candidateModules).toHaveLength(2);
   });
 });

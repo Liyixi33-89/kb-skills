@@ -20,6 +20,7 @@ import { kebab } from "./utils/path";
 import type {
   KoaRaw,
   ModuleInfo,
+  NestRaw,
   OrmKind,
   ReactRaw,
   ReactPageInfo,
@@ -814,6 +815,159 @@ const writeVue2StoreIndex = async (raw: Vue2Raw, outDir: string): Promise<void> 
 };
 
 // ═══════════════════════════════════════════════════════════════════════
+// NestJS writers
+// ═══════════════════════════════════════════════════════════════════════
+
+const writeNestProjectMap = async (
+  mod: ModuleInfo,
+  raw: NestRaw,
+  outDir: string,
+): Promise<void> => {
+  const orm = raw.orm ?? "mongoose";
+  const L: string[] = [
+    `# ${mod.name} 项目地图`,
+    "",
+    `**框架**: NestJS`,
+    `**ORM**: ${ORM_LABEL[orm] ?? orm}`,
+    `**入口**: src/main.ts`,
+    "",
+    "## 目录结构",
+    "",
+    "```",
+    "src/",
+    "  main.ts",
+  ];
+  const moduleNames = raw.modules.map((m) => m.name);
+  for (const m of moduleNames) L.push(`  ${m}.module.ts`);
+  L.push("```", "");
+
+  L.push("## 模块概览", "");
+  L.push("| 模块 | Controllers | Providers | Exports |", "|------|-------------|-----------|---------|" );
+  for (const m of raw.modules) {
+    L.push(
+      `| ${m.moduleName} | ${m.controllers.join(", ") || "—"} | ${m.providers.join(", ") || "—"} | ${m.moduleExports.join(", ") || "—"} |`,
+    );
+  }
+  await writeFileEnsuring(path.join(outDir, "00_project_map.md"), join(L));
+};
+
+const writeNestApiIndex = async (raw: NestRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# API 路由索引", ""];
+  L.push("## Controller 挂载", "");
+  L.push("| Controller | 前缀 | 端点数 |", "|------------|------|--------|" );
+  for (const c of raw.controllers) {
+    L.push(`| ${c.name} | /${c.prefix || ""} | ${c.endpoints.length} |`);
+  }
+  L.push("", "## 全量 API 列表", "");
+  L.push("| # | 方法 | 路径 | Handler | Guards | Controller |", "|---|------|------|---------|--------|------------|" );
+  let idx = 1;
+  for (const c of raw.controllers) {
+    for (const e of c.endpoints) {
+      const guards = e.guards.length > 0 ? e.guards.join(", ") : "—";
+      L.push(`| ${idx} | ${e.method} | ${e.path} | ${e.handler} | ${guards} | ${c.name} |`);
+      idx += 1;
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "01_index_api.md"), join(L));
+};
+
+const writeNestApiDetails = async (raw: NestRaw, outDir: string): Promise<void> => {
+  for (const c of raw.controllers) {
+    const L: string[] = [`# ${c.name}`, ""];
+    L.push(`**文件**: ${c.relPath}`);
+    L.push(`**路由前缀**: /${c.prefix || ""}`);
+    L.push(`**端点数**: ${c.endpoints.length}`, "");
+    L.push("## API 列表", "");
+    for (const e of c.endpoints) {
+      const guards = e.guards.length > 0 ? e.guards.join(", ") : "无";
+      L.push(`### ${e.method} ${e.path}`, "");
+      L.push(`**Handler**: \`${e.handler}\``);
+      L.push(`**Guards**: ${guards}`, "");
+    }
+    await writeFileEnsuring(path.join(outDir, "api", `${c.name}.md`), join(L));
+  }
+};
+
+const writeNestModelIndex = async (raw: NestRaw, outDir: string): Promise<void> => {
+  const orm = raw.orm ?? "mongoose";
+  const label = ORM_LABEL[orm] ?? orm;
+  const sql = isSqlOrm(orm);
+  const L: string[] = [`# Model 索引 (${label})`, ""];
+  if (raw.models.length === 0) {
+    L.push("> 未检测到 Model 文件。");
+  } else {
+    L.push("| Model | 表名 | 字段数 | 文件 |", "|-------|------|--------|------|" );
+    for (const m of raw.models) {
+      const tableName = sql ? (m.tableName ?? m.name) : "—";
+      L.push(`| ${m.modelName ?? m.name} | ${tableName} | ${m.fields.length} | ${m.relPath} |`);
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "02_index_model.md"), join(L));
+};
+
+const writeNestServiceIndex = async (raw: NestRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Service 索引", ""];
+  if (raw.services.length === 0) {
+    L.push("> 未检测到 Service 文件。");
+  } else {
+    L.push("| Service | 导出类 | 文件 |", "|---------|--------|------|" );
+    for (const s of raw.services) {
+      L.push(`| ${s.name} | ${s.exports.join(", ") || "—"} | ${s.relPath} |`);
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "03_index_service.md"), join(L));
+};
+
+const writeNestProviderIndex = async (raw: NestRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Provider 索引 (Guard / Interceptor / Pipe / Filter)", ""];
+  const allProviders = [
+    ...raw.guards,
+    ...raw.interceptors,
+    ...raw.pipes,
+    ...raw.filters,
+  ];
+  if (allProviders.length === 0) {
+    L.push("> 未检测到 Guard / Interceptor / Pipe / Filter 文件。");
+  } else {
+    L.push("| 名称 | 类型 | 导出类 | 文件 |", "|------|------|--------|------|" );
+    for (const p of allProviders) {
+      L.push(`| ${p.name} | ${p.providerKind} | ${p.exports.join(", ") || "—"} | ${p.relPath} |`);
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "04_index_provider.md"), join(L));
+};
+
+const writeNestDtoIndex = async (raw: NestRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# DTO 索引", ""];
+  if (raw.dtos.length === 0) {
+    L.push("> 未检测到 DTO 文件。");
+  } else {
+    L.push("| DTO 类 | 字段数 | 文件 |", "|--------|--------|------|" );
+    for (const d of raw.dtos) {
+      for (const cls of d.classes) {
+        L.push(`| ${cls} | ${d.fields.length} | ${d.relPath} |`);
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "05_index_dto.md"), join(L));
+};
+
+const writeNestModuleIndex = async (raw: NestRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Module 索引", ""];
+  if (raw.modules.length === 0) {
+    L.push("> 未检测到 Module 文件。");
+  } else {
+    L.push("| Module | 导入 | Controllers | Providers | 导出 |", "|--------|------|-------------|-----------|------|" );
+    for (const m of raw.modules) {
+      L.push(
+        `| ${m.moduleName} | ${m.imports.join(", ") || "—"} | ${m.controllers.join(", ") || "—"} | ${m.providers.join(", ") || "—"} | ${m.moduleExports.join(", ") || "—"} |`,
+      );
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "06_index_module.md"), join(L));
+};
+
+// ═══════════════════════════════════════════════════════════════════════
 // Public API
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -908,6 +1062,27 @@ export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
       await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
       await writeChangelog(outDir, "覆盖全量视图、组件、API、Store、Types");
       await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
+    } else if (mod.kind === "backend" && mod.raw?.framework === "nestjs") {
+      const raw = mod.raw as NestRaw;
+      const outDir = path.join(kbRoot, "server", mod.name);
+      await writeNestProjectMap(mod, raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/00_project_map.md`);
+      await writeNestApiIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/01_index_api.md`);
+      await writeNestApiDetails(raw, outDir);
+      for (const c of raw.controllers) await opts.onFileWritten?.(`server/${mod.name}/api/${c.name}.md`);
+      await writeNestModelIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/02_index_model.md`);
+      await writeNestServiceIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/03_index_service.md`);
+      await writeNestProviderIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/04_index_provider.md`);
+      await writeNestDtoIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/05_index_dto.md`);
+      await writeNestModuleIndex(raw, outDir);
+      await opts.onFileWritten?.(`server/${mod.name}/06_index_module.md`);
+      await writeChangelog(outDir, "覆盖全量 Controller、Service、Model、Guard、DTO、Module");
+      await opts.onFileWritten?.(`server/${mod.name}/changelog.md`);
     }
   }
 };

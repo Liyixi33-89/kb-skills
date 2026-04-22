@@ -1,5 +1,21 @@
 # @kb-skills/core
 
+## 0.3.0
+
+### Minor Changes
+
+- **NestJS type definitions** added to `core/src/types.ts`:
+  - `NestEndpoint`, `NestControllerFile`, `NestServiceFile`, `NestProviderFile`, `NestDtoFile`, `NestModuleFile`, `NestRaw`
+  - `ScanRaw` union type now includes `NestRaw`
+- **`kb-writer`** — new NestJS rendering branch:
+  - `writeNestProjectMap` — project map with module overview
+  - `writeNestApiIndex` / `writeNestApiDetails` — controller + endpoint tables
+  - `writeNestModelIndex` — ORM model index (Prisma / TypeORM / Sequelize / Mongoose)
+  - `writeNestServiceIndex` — service index
+  - `writeNestProviderIndex` — guard / interceptor / pipe / filter index
+  - `writeNestDtoIndex` — DTO class index
+  - `writeNestModuleIndex` — module dependency overview
+
 ## 0.2.0
 
 ### Minor Changes

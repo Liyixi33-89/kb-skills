@@ -6,6 +6,9 @@
     { "path": "./packages/cli" },
     { "path": "./packages/adapter-koa" },
     { "path": "./packages/adapter-express" },
-    { "path": "./packages/adapter-react" }
+    { "path": "./packages/adapter-react" },
+    { "path": "./packages/adapter-vue3" },
+    { "path": "./packages/adapter-vue2" },
+    { "path": "./packages/adapter-nestjs" }
   ]
 }

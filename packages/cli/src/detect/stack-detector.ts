@@ -3,10 +3,10 @@
  * Used by `kb-skills init` to suggest adapter imports.
  */
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
-export type DetectedStack = "koa" | "express" | "nextjs" | "nuxt" | "react" | "vue2" | "vue3" | "unknown";
+export type DetectedStack = "koa" | "express" | "nestjs" | "nextjs" | "nuxt" | "react" | "vue2" | "vue3" | "unknown";
 
 export interface DetectionResult {
   stacks: DetectedStack[];
@@ -34,6 +34,8 @@ const depsOf = (pkg: Record<string, unknown>): Record<string, string> => ({
 const stackOf = (deps: Record<string, string>): DetectedStack => {
   if ("koa" in deps) return "koa";
   if ("express" in deps) return "express";
+  // NestJS must be checked before express (it may depend on express platform)
+  if ("@nestjs/core" in deps || "@nestjs/common" in deps) return "nestjs";
   // Next.js must be checked before react (it also depends on react)
   if ("next" in deps) return "nextjs";
   // Nuxt must be checked before vue (it also depends on vue)
@@ -63,16 +65,38 @@ export const detectStack = async (projectRoot: string): Promise<DetectionResult>
 
   const isMonorepo = workspaces.length > 0;
   if (isMonorepo) {
-    // only handle literal subfolders (no globs) for simplicity
+    // Expand each workspace entry: literal paths are used directly;
+    // glob patterns like "packages/*" are expanded by listing the directory.
+    const resolvedDirs: Array<{ abs: string; relPath: string }> = [];
+
     for (const ws of workspaces) {
-      if (ws.includes("*")) continue;
-      const abs = path.resolve(projectRoot, ws);
+      if (ws.includes("*")) {
+        // Simple glob: only support the common "<dir>/*" pattern.
+        const globBase = ws.replace(/\/\*.*$/, "");
+        const absBase = path.resolve(projectRoot, globBase);
+        try {
+          const entries = await readdir(absBase, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              const abs = path.join(absBase, entry.name);
+              resolvedDirs.push({ abs, relPath: path.posix.join(globBase, entry.name) });
+            }
+          }
+        } catch {
+          // directory doesn't exist — skip
+        }
+      } else {
+        resolvedDirs.push({ abs: path.resolve(projectRoot, ws), relPath: ws });
+      }
+    }
+
+    for (const { abs, relPath } of resolvedDirs) {
       const wsPkg = await readPkg(abs);
       if (!wsPkg) continue;
       const st = stackOf(depsOf(wsPkg));
       if (st !== "unknown") {
         stacks.add(st);
-        candidateModules.push({ name: (wsPkg.name as string) ?? path.basename(abs), relPath: ws, stack: st });
+        candidateModules.push({ name: (wsPkg.name as string) ?? path.basename(abs), relPath, stack: st });
       }
     }
   } else if (rootStack !== "unknown") {

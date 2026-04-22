@@ -19,6 +19,7 @@ const ADAPTER_FOR: Record<DetectedStack, { pkg: string; factory: string } | null
   koa: { pkg: "@kb-skills/adapter-koa", factory: "koaAdapter" },
   react: { pkg: "@kb-skills/adapter-react", factory: "reactAdapter" },
   express: { pkg: "@kb-skills/adapter-express", factory: "expressAdapter" },
+  nestjs: { pkg: "@kb-skills/adapter-nestjs", factory: "nestAdapter" },
   nextjs: { pkg: "@kb-skills/adapter-react", factory: "reactAdapter" },
   nuxt: { pkg: "@kb-skills/adapter-vue3", factory: "vue3Adapter" },
   vue2: { pkg: "@kb-skills/adapter-vue2", factory: "vue2Adapter" },
@@ -101,7 +102,7 @@ export const registerInit = (cli: CAC): void => {
       if (detected.isMonorepo) logger.info(`Monorepo with ${detected.candidateModules.length} module(s).`);
 
       if (detected.candidateModules.length === 0) {
-        logger.warn("No recognizable stack module found (Koa / Express / React / Vue 2 / Vue 3 / Next.js / Nuxt). A template config will still be created.");
+        logger.warn("No recognizable stack module found (Koa / Express / NestJS / React / Vue 2 / Vue 3 / Next.js / Nuxt). A template config will still be created.");
       }
 
       const configPath = path.join(projectRoot, "kb-skills.config.ts");
