@@ -491,15 +491,19 @@ const writeReactComponentIndex = async (raw: ReactRaw, outDir: string): Promise<
   await writeFileEnsuring(path.join(outDir, "02_index_component.md"), join(L));
 };
 
-const writeReactApiIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+/** 通用前端 API 封装索引（React / Vue 3 / Vue 2 共用） */
+const writeApiIndex = async (
+  apiFiles: TsFileInfo[],
+  outDir: string,
+): Promise<void> => {
   const L: string[] = ["# 前端 API 封装索引", ""];
-  if (raw.apiFiles.length === 0) {
+  if (apiFiles.length === 0) {
     L.push("> 该模块无 API 封装文件", "");
   } else {
-    for (const af of raw.apiFiles) {
+    for (const af of apiFiles) {
       L.push(`## ${path.basename(af.file)}`, "", `**文件**: ${af.relPath ?? ""}`, "");
       if (af.exports.length > 0) {
-        L.push("**导出函数**:", "", "| # | 函数名 |", "|---|--------|");
+        L.push("**导出函数**:", "", "| # | 函数名 |", "|---|--------|" );
         af.exports.forEach((e, i) => L.push(`| ${i + 1} | ${e} |`));
         L.push("");
       }
@@ -508,6 +512,9 @@ const writeReactApiIndex = async (raw: ReactRaw, outDir: string): Promise<void> 
   await writeFileEnsuring(path.join(outDir, "03_index_api.md"), join(L));
 };
 
+/** @deprecated 保留别名，避免破坏现有调用 */
+const writeReactApiIndex = (raw: ReactRaw, outDir: string) =>
+  writeApiIndex(raw.apiFiles, outDir);
 const writeReactStoreIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
   const L: string[] = ["# Zustand Store 索引", ""];
   if (raw.storeFiles.length === 0) {
@@ -535,19 +542,23 @@ const writeReactStoreIndex = async (raw: ReactRaw, outDir: string): Promise<void
   await writeFileEnsuring(path.join(outDir, "04_index_store.md"), join(L));
 };
 
-const writeReactTypesIndex = async (raw: ReactRaw, outDir: string): Promise<void> => {
+/** 通用 TypeScript 类型定义索引（React / Vue 3 / Vue 2 共用） */
+const writeTypesIndex = async (
+  typesFiles: TsFileInfo[],
+  outDir: string,
+): Promise<void> => {
   const L: string[] = ["# TypeScript 类型定义索引", ""];
-  if (raw.typesFiles.length === 0) {
+  if (typesFiles.length === 0) {
     L.push("> 该模块无类型定义文件", "");
   } else {
-    for (const tf of raw.typesFiles) {
+    for (const tf of typesFiles) {
       L.push(`## ${path.basename(tf.file)}`, "", `**文件**: ${tf.relPath ?? ""}`, "");
       if (tf.interfaces.length > 0) {
         L.push("### 接口", "");
         for (const iface of tf.interfaces) {
           L.push(`#### ${iface.name}`, "");
           if (iface.fields.length > 0) {
-            L.push("| 字段 | 类型 | 可选 |", "|------|------|------|");
+            L.push("| 字段 | 类型 | 可选 |", "|------|------|------|" );
             for (const f of iface.fields) {
               L.push(`| ${f.name} | ${f.type} | ${f.optional ? "✅" : "—"} |`);
             }
@@ -556,7 +567,7 @@ const writeReactTypesIndex = async (raw: ReactRaw, outDir: string): Promise<void
         }
       }
       if (tf.types.length > 0) {
-        L.push("### 类型别名", "", "| 类型名 | 定义 |", "|--------|------|");
+        L.push("### 类型别名", "", "| 类型名 | 定义 |", "|--------|------|" );
         for (const t of tf.types) L.push(`| ${t.name} | ${t.value.slice(0, 60)} |`);
         L.push("");
       }
@@ -565,6 +576,9 @@ const writeReactTypesIndex = async (raw: ReactRaw, outDir: string): Promise<void
   await writeFileEnsuring(path.join(outDir, "05_index_types.md"), join(L));
 };
 
+/** @deprecated 保留别名，避免破坏现有调用 */
+const writeReactTypesIndex = (raw: ReactRaw, outDir: string) =>
+  writeTypesIndex(raw.typesFiles, outDir);
 // ═══════════════════════════════════════════════════════════════════════
 // Vue 3 writers
 // ═══════════════════════════════════════════════════════════════════════
@@ -674,7 +688,7 @@ const writeVue2ProjectMap = async (
 ): Promise<void> => {
   const uiLabel = raw.uiLibrary ? raw.uiLibrary.name : "(no UI lib detected)";
   const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
-  L.push(`**技术栈**: Vue 2 + JavaScript + ${uiLabel} + Vuex`);
+  L.push(`**技术栈**: Vue 2 + JavaScript / TypeScript + ${uiLabel} + Vuex`);
   L.push(`**路径**: ${mod.root}`, "");
   L.push("## 目录结构", "", "```", "src/");
   L.push("├── views/            # 页面视图 (.vue)");
@@ -841,11 +855,11 @@ export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
       await opts.onFileWritten?.(`frontend/${mod.name}/01_index_page.md`);
       await writeVue3ComponentIndex(raw, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/02_index_component.md`);
-      await writeReactApiIndex(raw as unknown as ReactRaw, outDir);
+      await writeApiIndex(raw.apiFiles, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/03_index_api.md`);
       await writeVue3StoreIndex(raw, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/04_index_store.md`);
-      await writeReactTypesIndex(raw as unknown as ReactRaw, outDir);
+      await writeTypesIndex(raw.typesFiles, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
       await writeChangelog(outDir, "覆盖全量视图、组件、API、Store、Types");
       await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
@@ -858,11 +872,11 @@ export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
       await opts.onFileWritten?.(`frontend/${mod.name}/01_index_page.md`);
       await writeVue2ComponentIndex(raw, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/02_index_component.md`);
-      await writeReactApiIndex(raw as unknown as ReactRaw, outDir);
+      await writeApiIndex(raw.apiFiles, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/03_index_api.md`);
       await writeVue2StoreIndex(raw, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/04_index_store.md`);
-      await writeReactTypesIndex(raw as unknown as ReactRaw, outDir);
+      await writeTypesIndex(raw.typesFiles, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
       await writeChangelog(outDir, "覆盖全量视图、组件、API、Store、Types");
       await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);

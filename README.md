@@ -24,9 +24,9 @@
 |---|---|---|
 | [`@kb-skills/core`](./packages/core) | `0.2.0` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
 | [`@kb-skills/cli`](./packages/cli) | `0.0.5` | 命令行工具 `kb-skills` |
-| [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `1.0.0` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
-| [`@kb-skills/adapter-express`](./packages/adapter-express) | `1.0.0` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
-| [`@kb-skills/adapter-react`](./packages/adapter-react) | `1.0.0` | React 19 + Zustand 前端（支持 Ant Design） |
+| [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.0` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
+| [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.0` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
+| [`@kb-skills/adapter-react`](./packages/adapter-react) | `2.0.0` | React 19 + Zustand 前端（支持 Ant Design） |
 | [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.0.0` | Vue 3 + Pinia 前端（支持 Element Plus / Naive UI） |
 | [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.0` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
 

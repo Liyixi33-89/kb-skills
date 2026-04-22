@@ -101,7 +101,7 @@ export const registerInit = (cli: CAC): void => {
       if (detected.isMonorepo) logger.info(`Monorepo with ${detected.candidateModules.length} module(s).`);
 
       if (detected.candidateModules.length === 0) {
-        logger.warn("No recognizable Koa/Express/React module found. A template config will still be created.");
+        logger.warn("No recognizable stack module found (Koa / Express / React / Vue 2 / Vue 3 / Next.js / Nuxt). A template config will still be created.");
       }
 
       const configPath = path.join(projectRoot, "kb-skills.config.ts");
