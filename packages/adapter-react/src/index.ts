@@ -22,6 +22,8 @@ import {
   type ScanAdapter,
   type SymbolInfo,
   type TsFileInfo,
+  type UiLibraryInfo,
+  type UiLibraryKind,
 } from "@kb-skills/core";
 
 export interface ReactAdapterOptions {
@@ -105,6 +107,89 @@ const scanReactComponent = async (file: string): Promise<ReactComponentInfo | nu
     ...base,
     name: path.basename(file, path.extname(file)),
     props,
+  };
+};
+
+// ─── UI library detection ──────────────────────────────────────────────
+
+/**
+ * Maps npm package names to their canonical UiLibraryKind.
+ * Ordered by detection priority — first match wins.
+ */
+const UI_LIBRARY_MAP: Array<{ pkg: string; kind: UiLibraryKind; importSource: string }> = [
+  { pkg: "antd",            kind: "antd",         importSource: "antd" },
+  { pkg: "antd-mobile",     kind: "antd-mobile",  importSource: "antd-mobile" },
+  { pkg: "@mui/material",   kind: "material-ui",  importSource: "@mui/material" },
+  { pkg: "@chakra-ui/react",kind: "chakra-ui",    importSource: "@chakra-ui/react" },
+  { pkg: "@shadcn/ui",      kind: "shadcn",       importSource: "@/components/ui" },
+  { pkg: "element-plus",    kind: "element-plus", importSource: "element-plus" },
+  { pkg: "naive-ui",        kind: "naive-ui",     importSource: "naive-ui" },
+];
+
+/**
+ * Extract all named imports from a given import source in a source file.
+ * Handles both single-line and multi-line import statements.
+ *
+ * e.g. `import { Button, Table, Form } from "antd"` → ["Button", "Table", "Form"]
+ */
+const extractNamedImports = (content: string, importSource: string): string[] => {
+  const escaped = importSource.replace(/[/\\@.-]/g, "\\$&");
+  const re = new RegExp(
+    `import\\s*\\{([^}]+)\\}\\s*from\\s*["']${escaped}["']`,
+    "gs",
+  );
+  const names: string[] = [];
+  for (const m of content.matchAll(re)) {
+    for (const raw of m[1]!.split(",")) {
+      // Handle `Button as AntButton` aliases — keep the original name
+      const name = raw.trim().split(/\s+as\s+/)[0]!.trim();
+      if (name && /^[A-Z]/.test(name)) names.push(name);
+    }
+  }
+  return names;
+};
+
+/**
+ * Detect the UI component library used in the project.
+ * Reads package.json for the dependency, then scans all .tsx/.jsx/.ts/.js
+ * source files to collect the component names actually imported.
+ */
+const detectUiLibrary = async (
+  projectRoot: string,
+): Promise<UiLibraryInfo | undefined> => {
+  // ① Detect which library is installed
+  let pkg: Record<string, string> = {};
+  try {
+    const raw = JSON.parse(
+      await readFile(path.join(projectRoot, "package.json"), "utf8"),
+    ) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    pkg = { ...(raw.dependencies ?? {}), ...(raw.devDependencies ?? {}) };
+  } catch {
+    return undefined;
+  }
+
+  const matched = UI_LIBRARY_MAP.find((entry) => entry.pkg in pkg);
+  if (!matched) return undefined;
+
+  // ② Scan source files for actual component usage
+  const src = path.join(projectRoot, "src");
+  const componentSet = new Set<string>();
+
+  for (const f of await walkFiles(src, [".tsx", ".jsx", ".ts", ".js"], IGNORE_DIRS)) {
+    const content = await readText(f);
+    if (!content) continue;
+    for (const name of extractNamedImports(content, matched.importSource)) {
+      componentSet.add(name);
+    }
+  }
+
+  return {
+    name: matched.kind,
+    version: pkg[matched.pkg],
+    components: [...componentSet].sort(),
   };
 };
 
@@ -202,6 +287,10 @@ const scanReactProject = async (projectRoot: string): Promise<ReactRaw> => {
     }
     raw.routes = extractReactRoutes(appContent);
   }
+
+  // UI library detection
+  const uiLibrary = await detectUiLibrary(projectRoot);
+  if (uiLibrary) raw.uiLibrary = uiLibrary;
 
   return raw;
 };

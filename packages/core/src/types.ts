@@ -193,6 +193,32 @@ export interface ReactRoute {
   component: string;
 }
 
+/**
+ * UI component libraries that the React adapter can detect.
+ * Ordered by detection priority (antd > antd-mobile > mui > ...).
+ */
+export type UiLibraryKind =
+  | "antd"
+  | "antd-mobile"
+  | "material-ui"
+  | "chakra-ui"
+  | "shadcn"
+  | "element-plus"
+  | "naive-ui";
+
+/**
+ * Detected UI library metadata.
+ * `components` lists every named import extracted from the project source files.
+ */
+export interface UiLibraryInfo {
+  /** Canonical library identifier. */
+  name: UiLibraryKind;
+  /** Raw version string from package.json (e.g. "^5.0.0"). */
+  version?: string;
+  /** Deduplicated list of component names actually imported in the project. */
+  components: string[];
+}
+
 export interface ReactRaw {
   framework: "react";
   pages: Array<ReactPageInfo | TsFileInfo>;
@@ -203,6 +229,8 @@ export interface ReactRaw {
   hooks: TsFileInfo[];
   routes: ReactRoute[];
   app?: TsFileInfo;
+  /** Detected UI component library, if any. */
+  uiLibrary?: UiLibraryInfo;
 }
 
 export type ScanRaw = KoaRaw | ReactRaw;

@@ -83,8 +83,10 @@ export const scanTsFile = async (file: string): Promise<TsFileInfo | null> => {
   }
 
   // ── interfaces ───────────────────────────────────────────────────────
+  // `(?:<[^>]+>)?` allows generic type parameters: `interface Foo<T, U> {`
+  // The extends clause also allows generics: `interface Foo extends Bar<T> {`
   const ifaceRe =
-    /(?:export\s+)?interface\s+(\w+)(?:\s+extends\s+(\w+))?\s*\{/g;
+    /(?:export\s+)?interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[\w<>, ]+)?\s*\{/g;
   for (const m of content.matchAll(ifaceRe)) {
     const name = m[1]!;
     const start = m.index! + m[0].length;
