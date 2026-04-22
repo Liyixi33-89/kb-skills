@@ -104,4 +104,45 @@ describe("detectStack", () => {
     expect(res.stacks).toEqual([]);
     expect(res.candidateModules).toEqual([]);
   });
+
+  it("detects a Next.js project (next dep takes priority over react)", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-next-app",
+        dependencies: { next: "^14.0.0", react: "^18.0.0", "react-dom": "^18.0.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["nextjs"]);
+    expect(res.candidateModules[0]?.stack).toBe("nextjs");
+  });
+
+  it("detects a Nuxt project via 'nuxt' dep (takes priority over vue)", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-nuxt-app",
+        dependencies: { nuxt: "^3.10.0", vue: "^3.4.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["nuxt"]);
+    expect(res.candidateModules[0]?.stack).toBe("nuxt");
+  });
+
+  it("detects a Nuxt project via '@nuxt/kit' dep", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-nuxt-layer",
+        devDependencies: { "@nuxt/kit": "^3.10.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["nuxt"]);
+  });
 });

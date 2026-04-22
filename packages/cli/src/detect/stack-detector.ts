@@ -6,7 +6,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
-export type DetectedStack = "koa" | "express" | "react" | "vue2" | "vue3" | "unknown";
+export type DetectedStack = "koa" | "express" | "nextjs" | "nuxt" | "react" | "vue2" | "vue3" | "unknown";
 
 export interface DetectionResult {
   stacks: DetectedStack[];
@@ -34,6 +34,10 @@ const depsOf = (pkg: Record<string, unknown>): Record<string, string> => ({
 const stackOf = (deps: Record<string, string>): DetectedStack => {
   if ("koa" in deps) return "koa";
   if ("express" in deps) return "express";
+  // Next.js must be checked before react (it also depends on react)
+  if ("next" in deps) return "nextjs";
+  // Nuxt must be checked before vue (it also depends on vue)
+  if ("nuxt" in deps || "@nuxt/core" in deps || "@nuxt/kit" in deps) return "nuxt";
   if ("react" in deps) return "react";
   if (deps["vue"]?.startsWith("2.") || "vue-template-compiler" in deps) return "vue2";
   if ("vue" in deps) return "vue3";

@@ -19,8 +19,10 @@ const ADAPTER_FOR: Record<DetectedStack, { pkg: string; factory: string } | null
   koa: { pkg: "@kb-skills/adapter-koa", factory: "koaAdapter" },
   react: { pkg: "@kb-skills/adapter-react", factory: "reactAdapter" },
   express: { pkg: "@kb-skills/adapter-express", factory: "expressAdapter" },
-  vue2: null,
-  vue3: null,
+  nextjs: { pkg: "@kb-skills/adapter-react", factory: "reactAdapter" },
+  nuxt: { pkg: "@kb-skills/adapter-vue3", factory: "vue3Adapter" },
+  vue2: { pkg: "@kb-skills/adapter-vue2", factory: "vue2Adapter" },
+  vue3: { pkg: "@kb-skills/adapter-vue3", factory: "vue3Adapter" },
   unknown: null,
 };
 

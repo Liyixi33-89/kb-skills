@@ -204,7 +204,9 @@ export type UiLibraryKind =
   | "chakra-ui"
   | "shadcn"
   | "element-plus"
-  | "naive-ui";
+  | "element-ui"
+  | "naive-ui"
+  | "vant";
 
 /**
  * Detected UI library metadata.
@@ -317,7 +319,97 @@ export interface Vue3Raw {
   uiLibrary?: UiLibraryInfo;
 }
 
-export type ScanRaw = KoaRaw | ReactRaw | Vue3Raw;
+// ─── Vue 2 types ─────────────────────────────────────────────────────────────
+
+/**
+ * Metadata extracted from a Vue 2 SFC view/page file.
+ * Covers both Options API and `<script>` block authoring styles.
+ */
+export interface Vue2PageInfo extends TsFileInfo {
+  /** Component / file stem name, e.g. "UserList". */
+  name: string;
+  /** `data()` property names. */
+  dataProps: string[];
+  /** `computed` property names. */
+  computeds: string[];
+  /** `watch` property names. */
+  watchProps: string[];
+  /** Deduplicated `this.$xxx` / `api.xxx` call names. */
+  apiCalls: string[];
+  /** Method names from the `methods` block. */
+  methods: string[];
+}
+
+/**
+ * Metadata extracted from a Vue 2 SFC component file.
+ */
+export interface Vue2ComponentInfo extends TsFileInfo {
+  /** Component name (file stem or `name:` option). */
+  name: string;
+  /** Props extracted from `props: { ... }` or `props: [...]`. */
+  props: KoaInterfaceField[];
+  /** Emit event names from `this.$emit('...')` calls. */
+  emits: string[];
+}
+
+/**
+ * A single route entry extracted from `src/router/index.js`.
+ */
+export interface Vue2Route {
+  path: string;
+  component: string;
+  /** Optional route name string. */
+  name?: string;
+}
+
+/**
+ * Metadata for a Vue 2 mixin file (`src/mixins/*.js|ts`).
+ */
+export interface Vue2MixinInfo extends TsFileInfo {
+  /** Mixin file stem name. */
+  name: string;
+}
+
+/**
+ * Metadata for a Vuex store file (`src/store/*.js|ts`).
+ */
+export interface Vue2StoreInfo extends TsFileInfo {
+  /** Vuex module namespace, if detectable from `namespaced: true` + file path. */
+  namespace?: string;
+  /** State property names extracted from `state: { ... }` or `state() { ... }`. */
+  stateProps: string[];
+  /** Mutation names from `mutations: { ... }`. */
+  mutations: string[];
+  /** Action names from `actions: { ... }`. */
+  actions: string[];
+}
+
+/**
+ * Raw payload emitted by `adapter-vue2`.
+ *
+ * Layout convention: `src/{views,pages,components,mixins,store,api,types,router}`.
+ */
+export interface Vue2Raw {
+  framework: "vue2";
+  /** SFC files from `src/views/` and `src/pages/`. */
+  views: Vue2PageInfo[];
+  /** SFC files from `src/components/`. */
+  components: Vue2ComponentInfo[];
+  /** Mixin files from `src/mixins/`. */
+  mixins: Vue2MixinInfo[];
+  /** Vuex store files from `src/store/`. */
+  stores: Vue2StoreInfo[];
+  /** API helper files from `src/api/`. */
+  apiFiles: TsFileInfo[];
+  /** Type definition files from `src/types/`. */
+  typesFiles: TsFileInfo[];
+  /** Routes extracted from `src/router/index.js|ts`. */
+  routes: Vue2Route[];
+  /** Detected UI component library (Element UI, Vant, etc.). */
+  uiLibrary?: UiLibraryInfo;
+}
+
+export type ScanRaw = KoaRaw | ReactRaw | Vue3Raw | Vue2Raw;
 
 export interface ModuleInfo {
   name: string;

@@ -25,6 +25,8 @@ import type {
   ReactPageInfo,
   ScanResult,
   TsFileInfo,
+  Vue3Raw,
+  Vue2Raw,
 } from "./types";
 
 const ORM_LABEL: Record<OrmKind, string> = {
@@ -371,7 +373,8 @@ const writeReactProjectMap = async (
   outDir: string,
 ): Promise<void> => {
   const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
-  L.push("**技术栈**: React + TypeScript + Antd + TailwindCSS + Zustand");
+  const uiLabel = raw.uiLibrary ? raw.uiLibrary.name : "(no UI lib detected)";
+  L.push(`**技术栈**: React + TypeScript + ${uiLabel} + Zustand`);
   L.push(`**路径**: ${mod.root}`, "");
   L.push("## 目录结构", "", "```", "src/");
   L.push("├── App.tsx           # 根组件 + 路由");
@@ -563,6 +566,212 @@ const writeReactTypesIndex = async (raw: ReactRaw, outDir: string): Promise<void
 };
 
 // ═══════════════════════════════════════════════════════════════════════
+// Vue 3 writers
+// ═══════════════════════════════════════════════════════════════════════
+
+const writeVue3ProjectMap = async (
+  mod: ModuleInfo,
+  raw: Vue3Raw,
+  outDir: string,
+): Promise<void> => {
+  const uiLabel = raw.uiLibrary ? raw.uiLibrary.name : "(no UI lib detected)";
+  const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
+  L.push(`**技术栈**: Vue 3 + TypeScript + ${uiLabel} + Pinia`);
+  L.push(`**路径**: ${mod.root}`, "");
+  L.push("## 目录结构", "", "```", "src/");
+  L.push("├── views/            # 页面视图 (.vue)");
+  L.push("├── components/       # 公共组件 (.vue)");
+  L.push("├── composables/      # 组合式函数 (useXxx)");
+  L.push("├── stores/           # Pinia 状态管理");
+  L.push("├── api/              # API 请求封装");
+  L.push("├── router/           # vue-router 路由");
+  L.push("└── types/            # TypeScript 类型定义");
+  L.push("```", "");
+
+  if (raw.routes.length > 0) {
+    L.push("## 路由表", "", "| 路径 | 组件 | 名称 |", "|------|------|------|");
+    for (const r of raw.routes) L.push(`| ${r.path} | ${r.component} | ${r.name ?? "—"} |`);
+    L.push("");
+  }
+
+  if (raw.uiLibrary && raw.uiLibrary.components.length > 0) {
+    L.push("## UI 组件使用", "");
+    L.push(`**库**: ${raw.uiLibrary.name}@${raw.uiLibrary.version ?? "*"}`, "");
+    L.push(`**使用组件**: ${raw.uiLibrary.components.slice(0, 20).join(", ")}`, "");
+  }
+
+  L.push("## 统计", "");
+  L.push(`- 视图: ${raw.views.length} 个`);
+  L.push(`- 组件: ${raw.components.length} 个`);
+  L.push(`- Composables: ${raw.composables.length} 个`);
+  L.push(`- Store 文件: ${raw.stores.length} 个`);
+  L.push(`- API 文件: ${raw.apiFiles.length} 个`);
+  L.push(`- Types 文件: ${raw.typesFiles.length} 个`);
+  await writeFileEnsuring(path.join(outDir, "00_project_map.md"), join(L));
+};
+
+const writeVue3PageIndex = async (raw: Vue3Raw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 视图索引", ""];
+  if (raw.routes.length > 0) {
+    L.push("## 路由表", "", "| # | 路由路径 | 组件 | 名称 |", "|---|---------|------|------|");
+    raw.routes.forEach((r, i) => L.push(`| ${i + 1} | ${r.path} | ${r.component} | ${r.name ?? "—"} |`));
+    L.push("");
+  }
+  L.push("## 视图功能摘要", "");
+  L.push(
+    "| # | 视图 | 文件 | ref 数 | computed 数 | watch 数 | API 调用 |",
+    "|---|------|------|--------|------------|---------|---------|"  ,
+  );
+  raw.views.forEach((v, i) => {
+    const apis = v.apiCalls.slice(0, 3).join(", ") || "—";
+    L.push(`| ${i + 1} | ${v.name} | ${v.relPath ?? ""} | ${v.refs.length} | ${v.computeds.length} | ${v.watchCount} | ${apis} |`);
+  });
+  L.push("");
+  await writeFileEnsuring(path.join(outDir, "01_index_page.md"), join(L));
+};
+
+const writeVue3ComponentIndex = async (raw: Vue3Raw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 公共组件索引", ""];
+  if (raw.components.length === 0) {
+    L.push("> 该模块无公共组件", "");
+  } else {
+    L.push("## 组件总览", "");
+    L.push("| # | 组件名 | 文件 | Props 数 | Emits 数 |", "|---|--------|------|---------|---------|"  );
+    raw.components.forEach((c, i) =>
+      L.push(`| ${i + 1} | ${c.name} | ${c.relPath ?? ""} | ${c.props.length} | ${c.emits.length} |`),
+    );
+    L.push("");
+  }
+  await writeFileEnsuring(path.join(outDir, "02_index_component.md"), join(L));
+};
+
+const writeVue3StoreIndex = async (raw: Vue3Raw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Pinia Store 索引", ""];
+  if (raw.stores.length === 0) {
+    L.push("> 该模块无 Store 文件", "");
+  } else {
+    for (const s of raw.stores) {
+      L.push(`## ${path.basename(s.file)}`, "", `**文件**: ${s.relPath ?? ""}`, "");
+      if (s.storeId) L.push(`**Store ID**: ${s.storeId}`, "");
+      if (s.exports.length > 0) {
+        L.push("**导出**:", "", "| 导出名 |", "|--------|"  );
+        for (const e of s.exports) L.push(`| ${e} |`);
+        L.push("");
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "04_index_store.md"), join(L));
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// Vue 2 writers
+// ═══════════════════════════════════════════════════════════════════════
+
+const writeVue2ProjectMap = async (
+  mod: ModuleInfo,
+  raw: Vue2Raw,
+  outDir: string,
+): Promise<void> => {
+  const uiLabel = raw.uiLibrary ? raw.uiLibrary.name : "(no UI lib detected)";
+  const L: string[] = [`# ${mod.name} — 前端项目全景`, ""];
+  L.push(`**技术栈**: Vue 2 + JavaScript + ${uiLabel} + Vuex`);
+  L.push(`**路径**: ${mod.root}`, "");
+  L.push("## 目录结构", "", "```", "src/");
+  L.push("├── views/            # 页面视图 (.vue)");
+  L.push("├── components/       # 公共组件 (.vue)");
+  L.push("├── mixins/           # Vue Mixins");
+  L.push("├── store/            # Vuex 状态管理");
+  L.push("├── api/              # API 请求封装");
+  L.push("├── router/           # vue-router 路由");
+  L.push("└── types/            # TypeScript 类型定义");
+  L.push("```", "");
+
+  if (raw.routes.length > 0) {
+    L.push("## 路由表", "", "| 路径 | 组件 | 名称 |", "|------|------|------|");
+    for (const r of raw.routes) L.push(`| ${r.path} | ${r.component} | ${r.name ?? "—"} |`);
+    L.push("");
+  }
+
+  if (raw.uiLibrary && raw.uiLibrary.components.length > 0) {
+    L.push("## UI 组件使用", "");
+    L.push(`**库**: ${raw.uiLibrary.name}@${raw.uiLibrary.version ?? "*"}`, "");
+    L.push(`**使用组件**: ${raw.uiLibrary.components.slice(0, 20).join(", ")}`, "");
+  }
+
+  L.push("## 统计", "");
+  L.push(`- 视图: ${raw.views.length} 个`);
+  L.push(`- 组件: ${raw.components.length} 个`);
+  L.push(`- Mixins: ${raw.mixins.length} 个`);
+  L.push(`- Store 文件: ${raw.stores.length} 个`);
+  L.push(`- API 文件: ${raw.apiFiles.length} 个`);
+  L.push(`- Types 文件: ${raw.typesFiles.length} 个`);
+  await writeFileEnsuring(path.join(outDir, "00_project_map.md"), join(L));
+};
+
+const writeVue2PageIndex = async (raw: Vue2Raw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 视图索引", ""];
+  if (raw.routes.length > 0) {
+    L.push("## 路由表", "", "| # | 路由路径 | 组件 | 名称 |", "|---|---------|------|------|");
+    raw.routes.forEach((r, i) => L.push(`| ${i + 1} | ${r.path} | ${r.component} | ${r.name ?? "—"} |`));
+    L.push("");
+  }
+  L.push("## 视图功能摘要", "");
+  L.push(
+    "| # | 视图 | 文件 | data 数 | computed 数 | methods 数 | API 调用 |",
+    "|---|------|------|---------|------------|-----------|---------|"  ,
+  );
+  raw.views.forEach((v, i) => {
+    const apis = v.apiCalls.slice(0, 3).join(", ") || "—";
+    L.push(`| ${i + 1} | ${v.name} | ${v.relPath ?? ""} | ${v.dataProps.length} | ${v.computeds.length} | ${v.methods.length} | ${apis} |`);
+  });
+  L.push("");
+  await writeFileEnsuring(path.join(outDir, "01_index_page.md"), join(L));
+};
+
+const writeVue2ComponentIndex = async (raw: Vue2Raw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 公共组件索引", ""];
+  if (raw.components.length === 0) {
+    L.push("> 该模块无公共组件", "");
+  } else {
+    L.push("## 组件总览", "");
+    L.push("| # | 组件名 | 文件 | Props 数 | Emits 数 |", "|---|--------|------|---------|---------|"  );
+    raw.components.forEach((c, i) =>
+      L.push(`| ${i + 1} | ${c.name} | ${c.relPath ?? ""} | ${c.props.length} | ${c.emits.length} |`),
+    );
+    L.push("");
+  }
+  await writeFileEnsuring(path.join(outDir, "02_index_component.md"), join(L));
+};
+
+const writeVue2StoreIndex = async (raw: Vue2Raw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Vuex Store 索引", ""];
+  if (raw.stores.length === 0) {
+    L.push("> 该模块无 Store 文件", "");
+  } else {
+    for (const s of raw.stores) {
+      L.push(`## ${path.basename(s.file)}`, "", `**文件**: ${s.relPath ?? ""}`, "");
+      if (s.namespace) L.push(`**命名空间**: ${s.namespace}`, "");
+      if (s.stateProps.length > 0) {
+        L.push("**State**:", "", "| 属性 |", "|------|"  );
+        for (const p of s.stateProps) L.push(`| ${p} |`);
+        L.push("");
+      }
+      if (s.mutations.length > 0) {
+        L.push("**Mutations**:", "", "| 名称 |", "|------|"  );
+        for (const m of s.mutations) L.push(`| ${m} |`);
+        L.push("");
+      }
+      if (s.actions.length > 0) {
+        L.push("**Actions**:", "", "| 名称 |", "|------|"  );
+        for (const a of s.actions) L.push(`| ${a} |`);
+        L.push("");
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "04_index_store.md"), join(L));
+};
+
+// ═══════════════════════════════════════════════════════════════════════
 // Public API
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -622,6 +831,40 @@ export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
       await writeReactTypesIndex(raw, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
       await writeChangelog(outDir, "覆盖全量页面、组件、API、Store、Types");
+      await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
+    } else if (mod.kind === "frontend" && mod.raw?.framework === "vue3") {
+      const raw = mod.raw as Vue3Raw;
+      const outDir = path.join(kbRoot, "frontend", mod.name);
+      await writeVue3ProjectMap(mod, raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/00_project_map.md`);
+      await writeVue3PageIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/01_index_page.md`);
+      await writeVue3ComponentIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/02_index_component.md`);
+      await writeReactApiIndex(raw as unknown as ReactRaw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/03_index_api.md`);
+      await writeVue3StoreIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/04_index_store.md`);
+      await writeReactTypesIndex(raw as unknown as ReactRaw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
+      await writeChangelog(outDir, "覆盖全量视图、组件、API、Store、Types");
+      await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
+    } else if (mod.kind === "frontend" && mod.raw?.framework === "vue2") {
+      const raw = mod.raw as Vue2Raw;
+      const outDir = path.join(kbRoot, "frontend", mod.name);
+      await writeVue2ProjectMap(mod, raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/00_project_map.md`);
+      await writeVue2PageIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/01_index_page.md`);
+      await writeVue2ComponentIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/02_index_component.md`);
+      await writeReactApiIndex(raw as unknown as ReactRaw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/03_index_api.md`);
+      await writeVue2StoreIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/04_index_store.md`);
+      await writeReactTypesIndex(raw as unknown as ReactRaw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
+      await writeChangelog(outDir, "覆盖全量视图、组件、API、Store、Types");
       await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
     }
   }
