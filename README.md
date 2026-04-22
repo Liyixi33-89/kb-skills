@@ -1,7 +1,7 @@
 # kb-skills
 
 > 将 AI Skills 打包成可通过 npm 安装的 CLI，适用于任意全栈项目。  
-> 支持 **React / Vue 2 / Vue 3 / Next.js / Nuxt** 前端，以及 **Node（Koa / Express）** 后端，可在全栈 monorepo 中前后端协同使用。
+> 支持 **React / Vue 2 / Vue 3 / Next.js / Nuxt** 前端，以及 **Node（Koa / Express / NestJS）** 后端，可在全栈 monorepo 中前后端协同使用。
 
 [![npm version](https://img.shields.io/npm/v/@kb-skills/cli.svg)](https://www.npmjs.com/package/@kb-skills/cli)
 [![npm downloads](https://img.shields.io/npm/dm/@kb-skills/cli.svg)](https://www.npmjs.com/package/@kb-skills/cli)
@@ -22,13 +22,14 @@
 
 | 包 | 版本 | 说明 |
 |---|---|---|
-| [`@kb-skills/core`](./packages/core) | `0.2.3` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
-| [`@kb-skills/cli`](./packages/cli) | `0.0.6` | 命令行工具 `kb-skills` |
+| [`@kb-skills/core`](./packages/core) | `0.3.0` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
+| [`@kb-skills/cli`](./packages/cli) | `0.1.0` | 命令行工具 `kb-skills` |
 | [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.0` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.0` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
+| [`@kb-skills/adapter-nestjs`](./packages/adapter-nestjs) | `1.0.0` | **NestJS** + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-react`](./packages/adapter-react) | `2.1.0` | React 19 / **Next.js 13+** + Zustand 前端（支持 Ant Design） |
 | [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.1.0` | Vue 3 / **Nuxt 3** + Pinia 前端（支持 Element Plus / Naive UI） |
-| [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.0` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
+| [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.1` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
 
 ---
 
@@ -41,6 +42,8 @@
 npm i -D @kb-skills/cli @kb-skills/adapter-koa @kb-skills/adapter-react
 # Vue 3 + Koa
 npm i -D @kb-skills/cli @kb-skills/adapter-koa @kb-skills/adapter-vue3
+# NestJS（全栈，adapter-nestjs 自动识别）
+npm i -D @kb-skills/cli @kb-skills/adapter-nestjs
 # Next.js（全栈，adapter-react 自动识别）
 npm i -D @kb-skills/cli @kb-skills/adapter-react
 # Nuxt 3（全栈，adapter-vue3 自动识别）
@@ -71,6 +74,8 @@ npm i -D @kb-skills/cli @kb-skills/adapter-vue2
 npm i -D @kb-skills/cli @kb-skills/adapter-koa
 # Express
 npm i -D @kb-skills/cli @kb-skills/adapter-express
+# NestJS
+npm i -D @kb-skills/cli @kb-skills/adapter-nestjs
 ```
 
 ### 方式 4：临时使用（不安装）
@@ -96,7 +101,7 @@ npx kb-skills init
 ```
 
 自动完成：
-- 🔍 检测技术栈（React / Vue 2 / Vue 3 / Koa / Express / Next.js / Nuxt）
+- 🔍 检测技术栈（React / Vue 2 / Vue 3 / Koa / Express / **NestJS** / Next.js / Nuxt）
 - 📝 生成 `kb-skills.config.ts`
 - 📂 创建 `kb/00_project_constitution.md`
 
@@ -170,6 +175,23 @@ export default defineConfig({
 });
 ```
 
+### NestJS 全栈示例
+
+> `adapter-nestjs` 自动识别 `@nestjs/core` / `@nestjs/common` 依赖，递归扫描 `*.controller.ts`、`*.service.ts`、`*.module.ts`、`*.dto.ts`、`*.guard.ts` 等文件。
+
+```ts
+import { defineConfig } from "@kb-skills/cli/config";
+import nestAdapter from "@kb-skills/adapter-nestjs";
+
+export default defineConfig({
+  kbRoot: "./kb",
+  modules: [
+    // NestJS 是全栈框架，只需一个模块
+    { name: "server", path: ".", adapter: nestAdapter() },
+  ],
+});
+```
+
 ### Next.js 全栈示例
 
 > `adapter-react` 自动识别 `next` 依赖，扫描 `app/`（App Router）和根 `pages/`（Pages Router）。
@@ -214,6 +236,7 @@ export default defineConfig({
 |---|---|---|
 | `@kb-skills/adapter-koa` | Koa | Mongoose · Prisma · TypeORM · Sequelize |
 | `@kb-skills/adapter-express` | Express | Mongoose · Prisma · TypeORM · Sequelize |
+| `@kb-skills/adapter-nestjs` | **NestJS** | Mongoose · Prisma · TypeORM · Sequelize |
 
 ### 前端适配器
 
@@ -228,9 +251,11 @@ export default defineConfig({
 `kb-skills init` 读取 `package.json` 依赖，按以下优先级自动选择适配器：
 
 ```
-koa → express → next(→ react adapter) → nuxt(→ vue3 adapter)
+koa → express → nestjs → next(→ react adapter) → nuxt(→ vue3 adapter)
 → react → vue2 → vue3
 ```
+
+> **Monorepo glob 支持**：`packages/*`、`apps/*` 等通配符 workspace 路径现已自动展开，无需手动列举子包。
 
 ---
 
@@ -266,7 +291,7 @@ koa → express → next(→ react adapter) → nuxt(→ vue3 adapter)
 ```
 kb/
 ├── 00_project_constitution.md   # 项目宪法（手动维护）
-├── server/<name>/
+├── server/<name>/               # Koa / Express 后端
 │   ├── 00_project_map.md        # 后端全景
 │   ├── 01_index_api.md          # 路由索引
 │   ├── 02_index_model.md        # Model 索引（含 ORM 字段）
@@ -274,6 +299,16 @@ kb/
 │   ├── 04_index_config.md       # 配置 & 中间件
 │   ├── api/<route>.md           # 路由详情
 │   ├── services/<service>.md    # Service 详情
+│   └── changelog.md
+├── server/<name>/               # NestJS 后端（7 层）
+│   ├── 00_project_map.md        # 模块全景
+│   ├── 01_index_api.md          # Controller + 端点索引
+│   ├── 02_index_model.md        # Model 索引（含 ORM 字段）
+│   ├── 03_index_service.md      # Service 索引
+│   ├── 04_index_provider.md     # Guard / Interceptor / Pipe / Filter
+│   ├── 05_index_dto.md          # DTO 索引
+│   ├── 06_index_module.md       # Module 依赖关系
+│   ├── api/<controller>.md      # Controller 详情
 │   └── changelog.md
 └── frontend/<name>/
     ├── 00_project_map.md        # 前端全景（含 UI 库）
