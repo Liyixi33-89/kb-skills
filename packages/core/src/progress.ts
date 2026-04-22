@@ -7,7 +7,7 @@
 import path from "node:path";
 import { writeFileEnsuring, readTextOrNull } from "./utils/fs";
 import { kebab } from "./utils/path";
-import type { ScanResult, KoaRaw, ReactRaw } from "./types";
+import type { ScanResult, KoaRaw, NestRaw, ReactRaw } from "./types";
 
 export const PROGRESS_FILE = "progress.md";
 
@@ -17,6 +17,18 @@ export const SERVER_LAYER2_FILES = [
   "02_index_model.md",
   "03_index_service.md",
   "04_index_config.md",
+  "changelog.md",
+];
+
+/** NestJS 后端模块的第二层文件（比 Koa/Express 多 3 个） */
+export const NEST_LAYER2_FILES = [
+  "00_project_map.md",
+  "01_index_api.md",
+  "02_index_model.md",
+  "03_index_service.md",
+  "04_index_provider.md",
+  "05_index_dto.md",
+  "06_index_module.md",
   "changelog.md",
 ];
 
@@ -50,29 +62,45 @@ export const renderProgress = (scan: ScanResult): string => {
 
   for (const mod of scan.modules) {
     if (mod.kind === "backend") {
-      const raw = mod.raw as KoaRaw | undefined;
+      const framework = (mod.raw as KoaRaw | NestRaw | undefined)?.framework;
+      const isNest = framework === "nestjs";
+      const layer2Files = isNest ? NEST_LAYER2_FILES : SERVER_LAYER2_FILES;
+
       lines.push(`## server/${mod.name}`, "");
-      lines.push("### 第二层（索引文件）", "");
-      for (const f of SERVER_LAYER2_FILES) lines.push(`- ⬜ ${f}`);
+      lines.push("第二层（索引文件）", "");
+      for (const f of layer2Files) lines.push(`- ⬜ ${f}`);
       lines.push("");
 
-      const routes = raw?.routes ?? [];
-      const services = raw?.services ?? [];
-      if (routes.length > 0 || services.length > 0) {
-        lines.push("### 第三层（详情文件）", "");
-        if (routes.length > 0) {
+      if (isNest) {
+        // NestJS 第三层：api/<controller>.md
+        const nestRaw = mod.raw as NestRaw;
+        const controllers = nestRaw?.controllers ?? [];
+        if (controllers.length > 0) {
+          lines.push("第三层（详情文件）", "");
           lines.push("#### api/", "");
-          for (const r of routes) lines.push(`- ⬜ api/${r.name}.md`);
+          for (const c of controllers) lines.push(`- ⬜ api/${c.name}.md`);
           lines.push("");
         }
-        if (services.length > 0) {
-          lines.push("#### services/", "");
-          for (const s of services) lines.push(`- ⬜ services/${s.name}.md`);
-          lines.push("");
+      } else {
+        // Koa / Express 第三层：api/<route>.md + services/<service>.md
+        const raw = mod.raw as KoaRaw | undefined;
+        const routes = raw?.routes ?? [];
+        const services = raw?.services ?? [];
+        if (routes.length > 0 || services.length > 0) {
+          lines.push("第三层（详情文件）", "");
+          if (routes.length > 0) {
+            lines.push("#### api/", "");
+            for (const r of routes) lines.push(`- ⬜ api/${r.name}.md`);
+            lines.push("");
+          }
+          if (services.length > 0) {
+            lines.push("#### services/", "");
+            for (const s of services) lines.push(`- ⬜ services/${s.name}.md`);
+            lines.push("");
+          }
         }
       }
-    } else {
-      const raw = mod.raw as ReactRaw | undefined;
+    } else {      const raw = mod.raw as ReactRaw | undefined;
       lines.push(`## frontend/${mod.name}`, "");
       lines.push("### 第二层（索引文件）", "");
       for (const f of REACT_LAYER2_FILES) lines.push(`- ⬜ ${f}`);

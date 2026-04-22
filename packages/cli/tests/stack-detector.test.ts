@@ -119,12 +119,13 @@ describe("detectStack", () => {
     expect(res.candidateModules[0]?.stack).toBe("nextjs");
   });
 
-  it("detects a NestJS project via @nestjs/core", async () => {
+  it("detects a NestJS project via @nestjs/core (takes priority over express)", async () => {
     await writeFile(
       path.join(tmp, "package.json"),
       JSON.stringify({
         name: "my-nest-api",
-        dependencies: { "@nestjs/core": "^10.0.0", "@nestjs/common": "^10.0.0" },
+        // NestJS projects typically install @nestjs/platform-express which brings in express
+        dependencies: { "@nestjs/core": "^10.0.0", "@nestjs/common": "^10.0.0", "express": "^4.21.0" },
       }),
     );
 

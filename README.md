@@ -22,8 +22,8 @@
 
 | 包 | 版本 | 说明 |
 |---|---|---|
-| [`@kb-skills/core`](./packages/core) | `0.3.0` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
-| [`@kb-skills/cli`](./packages/cli) | `0.1.0` | 命令行工具 `kb-skills` |
+| [`@kb-skills/core`](./packages/core) | `0.3.1` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
+| [`@kb-skills/cli`](./packages/cli) | `0.1.1` | 命令行工具 `kb-skills` |
 | [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.0` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.0` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-nestjs`](./packages/adapter-nestjs) | `1.0.0` | **NestJS** + Mongoose / Prisma / TypeORM / Sequelize 后端 |

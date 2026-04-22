@@ -33,9 +33,9 @@ const depsOf = (pkg: Record<string, unknown>): Record<string, string> => ({
 
 const stackOf = (deps: Record<string, string>): DetectedStack => {
   if ("koa" in deps) return "koa";
-  if ("express" in deps) return "express";
-  // NestJS must be checked before express (it may depend on express platform)
+  // NestJS must be checked before express (NestJS depends on @nestjs/platform-express which installs express)
   if ("@nestjs/core" in deps || "@nestjs/common" in deps) return "nestjs";
+  if ("express" in deps) return "express";
   // Next.js must be checked before react (it also depends on react)
   if ("next" in deps) return "nextjs";
   // Nuxt must be checked before vue (it also depends on vue)
