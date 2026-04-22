@@ -63,6 +63,9 @@ export const scanMongooseModel = async (file: string): Promise<KoaModelFile | nu
   const schemaBody = extractSchemaBody(content);
 
   if (schemaBody) {
+    // Track which character ranges are "consumed" by { type: ... } style fields
+    const consumedRanges: Array<[number, number]> = [];
+
     // { type: ... } style — each top-level field: `fieldName: { ... }`
     // We need to handle nested braces, so use depth tracking per field
     const topFieldRe = /(\w+)\s*:\s*\{/g;
@@ -80,6 +83,8 @@ export const scanMongooseModel = async (file: string): Promise<KoaModelFile | nu
         pos++;
       }
       const body = schemaBody.slice(bodyStart, pos);
+      // Mark the entire `fieldName: { ... }` span as consumed
+      consumedRanges.push([fm.index!, pos + 1]);
 
       const info: KoaSchemaField = { name: fieldName };
       const typeMatch = body.match(/type\s*:\s*(\w+)/);
@@ -95,10 +100,13 @@ export const scanMongooseModel = async (file: string): Promise<KoaModelFile | nu
       fields.push(info);
     }
 
-    // simple `key: Type` style (only add if not already captured above)
-    for (const fm of schemaBody.matchAll(
-      /(\w+)\s*:\s*(String|Number|Boolean|Date|ObjectId|Mixed|Buffer|Map)\b/g,
-    )) {
+    // simple `key: Type` style — only match positions NOT inside a consumed range
+    const simpleRe = /(\w+)\s*:\s*(String|Number|Boolean|Date|ObjectId|Mixed|Buffer|Map)\b/g;
+    for (const fm of schemaBody.matchAll(simpleRe)) {
+      const matchPos = fm.index!;
+      // Skip if this position is inside a { type: ... } block
+      const isNested = consumedRanges.some(([start, end]) => matchPos > start && matchPos < end);
+      if (isNested) continue;
       const fieldName = fm[1]!;
       if (!fields.some((f) => f.name === fieldName)) {
         fields.push({ name: fieldName, type: fm[2]! });

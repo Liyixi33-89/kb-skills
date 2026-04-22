@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import type { KoaInterface } from "@kb-skills/core";
 
 export interface IUser {
   name: string;
