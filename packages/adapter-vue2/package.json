@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/adapter-vue2",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scan adapter for Vue 2 + Vuex frontends.",
   "license": "MIT",
   "type": "module",

@@ -1,5 +1,14 @@
 # @kb-skills/adapter-vue2
 
+## 1.0.1
+
+### Patch Changes
+
+- fix: support Vue 2.7 `<script setup>` and `@vue/composition-api` setup() blocks
+  - `extractScriptBlock` now prioritises `<script setup>` over plain `<script>`
+  - `scanVue2View` detects Composition API style (script setup or setup() method) and extracts `ref`/`reactive` → `dataProps`, `computed` → `computeds`, `handleXxx` → `methods`
+  - Options API path is unchanged (full regression coverage)
+
 ## 1.0.0
 
 ### Major Changes
@@ -24,11 +33,12 @@
   - Emits `raw.uiLibrary: { name, version, components[] }`
 
   ### Symbol emission
-  | Source | `kind` |
-  |---|---|
-  | `src/views/` + `src/pages/` | `"page"` |
-  | `src/components/` | `"component"` |
-  | `src/store/` exports | `"store"` |
-  | `src/api/` exports | `"api"` |
-  | `src/types/` interfaces | `"type"` |
-  | `src/mixins/` | `"config"` |
+
+  | Source                      | `kind`        |
+  | --------------------------- | ------------- |
+  | `src/views/` + `src/pages/` | `"page"`      |
+  | `src/components/`           | `"component"` |
+  | `src/store/` exports        | `"store"`     |
+  | `src/api/` exports          | `"api"`       |
+  | `src/types/` interfaces     | `"type"`      |
+  | `src/mixins/`               | `"config"`    |

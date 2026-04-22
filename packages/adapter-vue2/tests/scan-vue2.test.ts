@@ -678,3 +678,170 @@ describe("adapter-vue2 scan() — module metadata", () => {
     expect(mod.name).toBe("legacy");
   });
 });
+
+// ─── Composition API support ─────────────────────────────────────────────────
+
+describe("adapter-vue2 — Composition API support", () => {
+  let tmp: string;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), "kb-skills-vue2-composition-"));
+    await writeJson(path.join(tmp, "package.json"), {
+      name: "web",
+      dependencies: { vue: "^2.7.0" },
+    });
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  it("@vue/composition-api: parses setup() ref/computed/handlers from Options API wrapper", async () => {
+    await writeText(
+      path.join(tmp, "src", "views", "UserList.vue"),
+      `<template><div>{{ count }}</div></template>
+<script>
+import { ref, reactive, computed } from '@vue/composition-api';
+
+export default {
+  setup() {
+    const count = ref(0);
+    const user = reactive({ name: '' });
+    const double = computed(() => count.value * 2);
+    const handleClick = () => { count.value++; };
+    const handleReset = () => { count.value = 0; };
+    return { count, user, double, handleClick, handleReset };
+  },
+};
+</script>
+`,
+    );
+
+    const adapter = createVue2Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as {
+      views: Array<{
+        name: string;
+        dataProps: string[];
+        computeds: string[];
+        methods: string[];
+      }>;
+    };
+
+    expect(raw.views).toHaveLength(1);
+    const view = raw.views[0]!;
+    expect(view.name).toBe("UserList");
+
+    // ref/reactive → dataProps
+    expect(view.dataProps).toContain("count");
+    expect(view.dataProps).toContain("user");
+
+    // computed → computeds
+    expect(view.computeds).toContain("double");
+
+    // handleXxx → methods
+    expect(view.methods).toContain("handleClick");
+    expect(view.methods).toContain("handleReset");
+  });
+
+  it("Vue 2.7 <script setup>: parses ref/computed/handlers from script setup block", async () => {
+    await writeText(
+      path.join(tmp, "src", "views", "Dashboard.vue"),
+      `<template><div>{{ total }}</div></template>
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { api } from '../api/user';
+
+const items = ref<string[]>([]);
+const loading = ref(false);
+const total = computed(() => items.value.length);
+const handleRefresh = () => { items.value = []; };
+const handleDelete = (id: string) => api.deleteItem(id);
+</script>
+`,
+    );
+
+    const adapter = createVue2Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as {
+      views: Array<{
+        name: string;
+        dataProps: string[];
+        computeds: string[];
+        methods: string[];
+        apiCalls: string[];
+      }>;
+    };
+
+    expect(raw.views).toHaveLength(1);
+    const view = raw.views[0]!;
+    expect(view.name).toBe("Dashboard");
+
+    // ref → dataProps
+    expect(view.dataProps).toContain("items");
+    expect(view.dataProps).toContain("loading");
+
+    // computed → computeds
+    expect(view.computeds).toContain("total");
+
+    // handleXxx → methods
+    expect(view.methods).toContain("handleRefresh");
+    expect(view.methods).toContain("handleDelete");
+
+    // api calls still extracted
+    expect(view.apiCalls).toContain("deleteItem");
+  });
+
+  it("Options API still works correctly alongside Composition API detection", async () => {
+    await writeText(
+      path.join(tmp, "src", "views", "Settings.vue"),
+      `<template><div>{{ title }}</div></template>
+<script>
+export default {
+  data() {
+    return { title: 'Settings', count: 0 };
+  },
+  computed: {
+    upperTitle() { return this.title.toUpperCase(); },
+  },
+  watch: {
+    count(val) { console.log(val); },
+  },
+  methods: {
+    handleSave() { api.save(this.title); },
+    handleCancel() { this.$router.back(); },
+  },
+};
+</script>
+`,
+    );
+
+    const adapter = createVue2Adapter();
+    const mod = await adapter.scan(tmp);
+
+    const raw = mod.raw as {
+      views: Array<{
+        name: string;
+        dataProps: string[];
+        computeds: string[];
+        watchProps: string[];
+        methods: string[];
+      }>;
+    };
+
+    expect(raw.views).toHaveLength(1);
+    const view = raw.views[0]!;
+    expect(view.name).toBe("Settings");
+
+    // Options API still parsed correctly
+    expect(view.dataProps).toContain("title");
+    expect(view.dataProps).toContain("count");
+    expect(view.computeds).toContain("upperTitle");
+    expect(view.watchProps).toContain("count");
+    expect(view.methods).toContain("handleSave");
+    expect(view.methods).toContain("handleCancel");
+  });
+});
+

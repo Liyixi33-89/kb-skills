@@ -89,12 +89,72 @@ const extractNamedImports = (content: string, importSource: string): string[] =>
 };
 
 /**
- * Extract the content of the `<script>` block from a Vue 2 SFC string.
- * Returns empty string if not found.
+ * Extract the content of the `<script>` or `<script setup>` block from a Vue 2 SFC.
+ *
+ * Priority:
+ *   1. `<script setup>` — Vue 2.7 built-in Composition API syntax sugar
+ *   2. Plain `<script>` — Options API or `@vue/composition-api` setup()
+ *
+ * Returns empty string if neither block is found.
  */
 const extractScriptBlock = (sfcContent: string): string => {
-  const m = sfcContent.match(/<script(?:\s[^>]*)?>([^]*?)<\/script>/i);
-  return m ? m[1]! : "";
+  // Vue 2.7+: <script setup lang="ts"> / <script setup>
+  const setupMatch = sfcContent.match(/<script\s+setup(?:\s[^>]*)?>([^]*?)<\/script>/i);
+  if (setupMatch) return setupMatch[1]!;
+  // Options API or @vue/composition-api setup()
+  const scriptMatch = sfcContent.match(/<script(?:\s[^>]*)?>([^]*?)<\/script>/i);
+  return scriptMatch ? scriptMatch[1]! : "";
+};
+
+/**
+ * Detect whether a script block uses Composition API style.
+ * True when the block contains a top-level `setup()` method or is a `<script setup>` block.
+ */
+const isCompositionApiScript = (script: string, isScriptSetup: boolean): boolean => {
+  if (isScriptSetup) return true;
+  // setup() { ... } inside export default { ... }
+  return /\bsetup\s*\(/.test(script);
+};
+
+/**
+ * Extract Composition API variable names from a setup() / <script setup> block.
+ * Collects: ref(), reactive(), computed() declarations and handleXxx handlers.
+ */
+const extractCompositionApiProps = (
+  script: string,
+): { refs: string[]; computeds: string[]; handlers: string[] } => {
+  // Extract the setup() body if it's inside export default { setup() { ... } }
+  // Otherwise use the whole script (for <script setup>)
+  const setupBodyMatch = script.match(/\bsetup\s*\([^)]*\)\s*\{/);
+  let body = script;
+  if (setupBodyMatch) {
+    const start = setupBodyMatch.index! + setupBodyMatch[0].length;
+    let depth = 1;
+    let i = start;
+    while (i < script.length && depth > 0) {
+      if (script[i] === "{") depth++;
+      else if (script[i] === "}") depth--;
+      i++;
+    }
+    body = script.slice(start, i - 1);
+  }
+
+  const refs: string[] = [];
+  for (const m of body.matchAll(/const\s+(\w+)\s*=\s*(?:ref|reactive)\s*[<(]/g)) {
+    refs.push(m[1]!);
+  }
+
+  const computeds: string[] = [];
+  for (const m of body.matchAll(/const\s+(\w+)\s*=\s*computed\s*\(/g)) {
+    computeds.push(m[1]!);
+  }
+
+  const handlers: string[] = [];
+  for (const m of body.matchAll(/const\s+(handle\w+)\s*=/g)) {
+    handlers.push(m[1]!);
+  }
+
+  return { refs, computeds, handlers };
 };
 
 /**
@@ -159,6 +219,8 @@ const scanVue2View = async (file: string): Promise<Vue2PageInfo | null> => {
   const sfcContent = await readText(file);
   if (sfcContent === null) return null;
 
+  // Detect <script setup> (Vue 2.7 syntax sugar)
+  const isScriptSetup = /<script\s+setup(?:\s[^>]*)?>/.test(sfcContent);
   const script = extractScriptBlock(sfcContent);
 
   const base: TsFileInfo = {
@@ -173,19 +235,32 @@ const scanVue2View = async (file: string): Promise<Vue2PageInfo | null> => {
     constants: [],
   };
 
-  // data() properties
-  const dataProps = extractOptionBlock(script, "data");
+  let dataProps: string[];
+  let computeds: string[];
+  let watchProps: string[];
+  let methods: string[];
 
-  // computed properties
-  const computeds = extractOptionBlock(script, "computed");
+  if (isCompositionApiScript(script, isScriptSetup)) {
+    // ── Composition API path ─────────────────────────────────────────────
+    // Vue 2.7 <script setup> or @vue/composition-api setup() block
+    const comp = extractCompositionApiProps(script);
+    // Map Composition API concepts to Vue2PageInfo fields:
+    //   refs      → dataProps  (reactive state)
+    //   computeds → computeds
+    //   handlers  → methods
+    dataProps  = comp.refs;
+    computeds  = comp.computeds;
+    watchProps = [...script.matchAll(/\bwatch(?:Effect)?\s*\(/g)].map((_, i) => `watch_${i}`);
+    methods    = comp.handlers;
+  } else {
+    // ── Options API path ─────────────────────────────────────────────────
+    dataProps  = extractOptionBlock(script, "data");
+    computeds  = extractOptionBlock(script, "computed");
+    watchProps = extractOptionBlock(script, "watch");
+    methods    = extractOptionBlock(script, "methods");
+  }
 
-  // watch properties
-  const watchProps = extractOptionBlock(script, "watch");
-
-  // methods
-  const methods = extractOptionBlock(script, "methods");
-
-  // api calls: this.$xxx or api.xxx
+  // api calls: this.$xxx or api.xxx (both styles)
   const apiCalls = [
     ...new Set([
       ...[...script.matchAll(/this\.\$(\w+)\s*\(/g)].map((m) => m[1]!),
