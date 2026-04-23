@@ -5,11 +5,15 @@
   "type": "module",
   "description": "kb-skills fullstack example: Koa (server) + React (web)",
   "scripts": {
-    "scan": "kb-skills scan",
+    "kb:init": "kb-skills init",
+    "kb:run": "kb-skills run doc-code-to-kb",
+    "kb:status": "kb-skills status",
+    "kb:verify": "kb-skills verify",
     "dev:server": "pnpm --filter fullstack-koa-react-server dev",
     "dev:web": "pnpm --filter fullstack-koa-react-web dev"
   },
   "dependencies": {
+    "@kb-skills/cli": "^0.2.0",
     "@kb-skills/core": "^0.3.3",
     "@kb-skills/adapter-koa": "^2.0.1",
     "@kb-skills/adapter-react": "^2.1.0"
