@@ -1,0 +1,20 @@
+{
+  "name": "fullstack-koa-react",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "kb-skills fullstack example: Koa (server) + React (web)",
+  "scripts": {
+    "scan": "kb-skills scan",
+    "dev:server": "pnpm --filter fullstack-koa-react-server dev",
+    "dev:web": "pnpm --filter fullstack-koa-react-web dev"
+  },
+  "dependencies": {
+    "@kb-skills/core": "^0.3.3",
+    "@kb-skills/adapter-koa": "^2.0.1",
+    "@kb-skills/adapter-react": "^2.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
