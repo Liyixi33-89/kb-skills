@@ -74,8 +74,17 @@ export const scanProject = async (
   configFile: string,
   onProgress?: (msg: string) => void,
 ): Promise<ScanCache> => {
-  // Load config via jiti (handles TS, ESM, CJS transparently)
-  const jiti = createJiti(configFile, {
+  // createJiti 第一个参数是「调用者」的 file URL，用于解析相对路径
+  // VSCode 插件以 CommonJS bundle 运行，没有 import.meta.url，用 __filename 替代
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { pathToFileURL } = require("url") as typeof import("url");
+  // __filename 在 esbuild CommonJS bundle 中是全局变量
+  const callerUrl =
+    typeof __filename !== "undefined"
+      ? pathToFileURL(__filename).href
+      : pathToFileURL(configFile).href;
+
+  const jiti = createJiti(callerUrl, {
     interopDefault: true,
     moduleCache: false,
   });
@@ -105,7 +114,7 @@ export const scanProject = async (
     try {
       const result = await mod.adapter.scan(modulePath);
       const framework =
-        result.symbols.length > 0 ? result.symbols[0]!.framework : mod.adapter.name;
+        result.symbols.length > 0 ? result.symbols[0]!.framework : mod.name;
 
       scannedModules.push({
         name: mod.name,
