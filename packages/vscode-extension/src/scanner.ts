@@ -45,20 +45,22 @@ export const findConfigFile = (
 
 /**
  * 生成在子进程中执行的 runner 脚本内容。
- * 脚本加载 config，执行所有 adapter.scan()，将结果序列化为 JSON 输出到 stdout。
+ * 使用 .ts 扩展名，由 tsx 直接转译执行，支持 import .ts config 文件。
  */
 const buildRunnerScript = (configFile: string): string => {
-  // 路径转义（Windows 反斜杠）
-  const escaped = configFile.replace(/\\/g, "\\\\");
-  return `
-import { createRequire } from "module";
+  const configDir = path.dirname(configFile);
+  // Windows 路径必须转成 file:// URL 才能被 import() 接受
+  const configFileUrl = configFile.replace(/\\/g, "/");
+  const configDirStr = JSON.stringify(configDir);
+  const configFileUrlStr = JSON.stringify(`file:///${configFileUrl}`);
+
+  return `// @ts-nocheck
+// kb-skills runner — executed by tsx in project cwd
+import nodePath from "path";
 import { pathToFileURL } from "url";
 
-// 用 configFile 所在目录的 require 解析模块，确保从项目 node_modules 查找
-const _require = createRequire(pathToFileURL(${JSON.stringify(configFile)}));
-
-// 动态 import config（支持 ESM / CJS / TS via tsx）
-const raw = await import(pathToFileURL(${JSON.stringify(configFile)}).href);
+const configFileUrl = pathToFileURL(${JSON.stringify(configFile)}).href;
+const raw = await import(configFileUrl);
 const config = raw.default ?? raw;
 
 if (!config || !Array.isArray(config.modules)) {
@@ -69,10 +71,9 @@ if (!config || !Array.isArray(config.modules)) {
 const results = [];
 
 for (const mod of config.modules) {
-  const { default: path } = await import("path");
-  const modulePath = path.isAbsolute(mod.path)
+  const modulePath = nodePath.isAbsolute(mod.path)
     ? mod.path
-    : path.resolve(${JSON.stringify(path.dirname(configFile))}, mod.path);
+    : nodePath.resolve(${configDirStr}, mod.path);
 
   try {
     const result = await mod.adapter.scan(modulePath);
@@ -127,8 +128,10 @@ export const scanProject = async (
 ): Promise<ScanCache> => {
   onProgress?.("正在准备扫描环境...");
 
-  // 将 runner 脚本写入临时文件（.mjs 让 Node 以 ESM 模式执行）
-  const runnerPath = path.join(tmpdir(), `kb-skills-runner-${Date.now()}.mjs`);
+  // 将 runner 脚本写到 projectRoot 目录下（.ts 扩展名）
+  // 关键：tsx 从文件位置向上找 tsconfig，写到 projectRoot 确保读取项目自己的 tsconfig
+  // 而不是 vscode-extension 的 tsconfig（后者 target=ES2020 不支持 top-level await）
+  const runnerPath = path.join(projectRoot, `.kb-skills-runner-${Date.now()}.ts`);
   writeFileSync(runnerPath, buildRunnerScript(configFile), "utf-8");
 
   let stdout = "";
@@ -136,11 +139,16 @@ export const scanProject = async (
 
   try {
     const tsxBin = findNodeBin(projectRoot);
-    const isTsx = tsxBin !== process.execPath;
+
+    if (tsxBin === process.execPath) {
+      throw new Error(
+        "未找到 tsx 可执行文件。请在项目中安装 tsx：\n  pnpm add -D tsx\n或在 monorepo 根目录安装。",
+      );
+    }
 
     onProgress?.(`正在扫描项目: ${path.basename(projectRoot)}...`);
 
-    const args = [runnerPath]; // tsx 和 node 执行 .mjs 均直接传路径
+    const args = [runnerPath];
 
     const result = await execFileAsync(tsxBin, args, {
       cwd: projectRoot,           // ← 关键：在项目目录下执行，node_modules 解析正确
