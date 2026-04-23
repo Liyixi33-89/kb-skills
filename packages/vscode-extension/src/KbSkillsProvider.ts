@@ -293,14 +293,19 @@ export class KbSkillsProvider
     const symbols = mod.symbols.filter((s) => s.kind === groupNode.symbolKind);
 
     return symbols.map((sym, idx): SymbolNode => {
-      const relPath = toRelPath(sym.file, mod.root);
+      // sym.file 可能是绝对路径，也可能是相对路径（相对于 mod.root）
+      const absoluteFile = path.isAbsolute(sym.file)
+        ? sym.file
+        : path.join(mod.root, sym.file);
+      const relPath = toRelPath(absoluteFile, mod.root);
+
       return {
         kind: "symbol",
         id: `symbol:${groupNode.moduleId}:${groupNode.symbolKind}:${idx}`,
         moduleId: groupNode.moduleId,
         symbolKind: sym.kind,
         name: sym.name,
-        file: sym.file,
+        file: absoluteFile,   // ← 始终存绝对路径，供 openFile 命令使用
         relPath,
         framework: sym.framework,
         signature: sym.signature,
