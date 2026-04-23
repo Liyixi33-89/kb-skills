@@ -9,7 +9,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { KbSkillsProvider } from "./KbSkillsProvider";
-import { findConfigFile, scanProject } from "./scanner";
+import { findConfigFile, scanProject, setExtensionPath } from "./scanner";
+import { initProject } from "./initProject";
 import type { SymbolNode } from "./types";
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -54,9 +55,20 @@ const runScan = async (): Promise<void> => {
 
   if (!configFile) {
     provider.setError(
-      "未找到 kb-skills.config.ts\n请先运行 kb-skills init 初始化项目",
+      "未找到 kb-skills.config.ts\n点击下方按钮初始化项目",
     );
-    updateStatusBar("$(warning) 未配置", "未找到 kb-skills.config.ts");
+    updateStatusBar("$(warning) 未配置", "未找到 kb-skills.config.ts — 点击初始化");
+
+    // 提示用户一键初始化
+    const action = await vscode.window.showWarningMessage(
+      "KB Skills: 未找到 kb-skills.config.ts，是否立即初始化项目？",
+      "初始化项目",
+      "稍后再说",
+    );
+    if (action === "初始化项目") {
+      const shouldScan = await initProject(projectRoot);
+      if (shouldScan) void runScan();
+    }
     return;
   }
 
@@ -176,9 +188,23 @@ const handleRefresh = (): void => {
   void runScan();
 };
 
+// ─── Init command ─────────────────────────────────────────────────────────────
+
+const handleInit = async (): Promise<void> => {
+  const projectRoot = getProjectRoot();
+  if (!projectRoot) {
+    vscode.window.showWarningMessage("KB Skills: 未找到工作区根目录");
+    return;
+  }
+  const shouldScan = await initProject(projectRoot);
+  if (shouldScan) void runScan();
+};
+
 // ─── Activate ─────────────────────────────────────────────────────────────────
 
 export const activate = (context: vscode.ExtensionContext): void => {
+  // 注入插件自身路径，供 scanner 降级加载内置 adapter 使用
+  setExtensionPath(context.extensionPath);
   // Create provider
   provider = new KbSkillsProvider();
 
@@ -203,6 +229,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
   const commands = [
     vscode.commands.registerCommand("kbSkills.scan", () => void runScan()),
     vscode.commands.registerCommand("kbSkills.refresh", handleRefresh),
+    vscode.commands.registerCommand("kbSkills.init", () => void handleInit()),
     vscode.commands.registerCommand(
       "kbSkills.openFile",
       (filePath: string, symbolName?: string) =>

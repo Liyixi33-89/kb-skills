@@ -10,6 +10,14 @@ import { existsSync, writeFileSync, unlinkSync } from "node:fs";
 import { spawn } from "node:child_process";
 import type { ScanCache, ScannedModule } from "./types";
 
+/** 插件自身的 node_modules 目录（由 activate 时注入） */
+let _extensionNodeModules = "";
+
+/** 由 extension.ts 在 activate 时调用，注入插件目录 */
+export const setExtensionPath = (extensionPath: string): void => {
+  _extensionNodeModules = path.join(extensionPath, "node_modules");
+};
+
 /** 用 spawn 执行命令，返回 { stdout, stderr }，Windows .cmd 文件需要 shell:true */
 const spawnAsync = (
   cmd: string,
@@ -96,19 +104,48 @@ export const findConfigFile = (
 /**
  * 生成在子进程中执行的 runner 脚本内容。
  * 使用 .ts 扩展名，由 tsx 直接转译执行，支持 import .ts config 文件。
+ *
+ * 关键改进：adapter 加载顺序
+ *   1. 优先从项目本地 node_modules 加载（用户已安装）
+ *   2. 降级从插件内置 node_modules 加载（零配置开箱即用）
  */
-const buildRunnerScript = (configFile: string): string => {
+const buildRunnerScript = (configFile: string, extensionNodeModules: string): string => {
   const configDir = path.dirname(configFile);
-  // Windows 路径必须转成 file:// URL 才能被 import() 接受
-  const configFileUrl = configFile.replace(/\\/g, "/");
   const configDirStr = JSON.stringify(configDir);
-  const configFileUrlStr = JSON.stringify(`file:///${configFileUrl}`);
+  const extensionNodeModulesStr = JSON.stringify(extensionNodeModules);
 
   return `// @ts-nocheck
 // kb-skills runner — executed by tsx in project cwd
 import nodePath from "path";
+import nodeModule from "module";
 import { pathToFileURL } from "url";
 
+// ─── 模块解析：优先项目本地，降级插件内置 ────────────────────────────────────
+const projectNodeModules = nodePath.join(${configDirStr}, "node_modules");
+const extensionNodeModules = ${extensionNodeModulesStr};
+
+/**
+ * 尝试从多个 node_modules 路径解析模块，返回第一个成功的路径。
+ * 这样用户本地安装的 adapter 优先级最高，插件内置的作为兜底。
+ */
+const resolveFrom = (moduleName) => {
+  const searchPaths = [projectNodeModules, extensionNodeModules];
+  for (const base of searchPaths) {
+    try {
+      const require = nodeModule.createRequire(nodePath.join(base, "__placeholder__"));
+      return require.resolve(moduleName);
+    } catch {
+      // 继续尝试下一个路径
+    }
+  }
+  throw new Error(
+    \`无法解析模块 "\${moduleName}"。\n\` +
+    \`请安装对应 adapter：npm install -D \${moduleName}\n\` +
+    \`或确认插件版本支持该 adapter。\`
+  );
+};
+
+// ─── 加载配置文件 ─────────────────────────────────────────────────────────────
 const configFileUrl = pathToFileURL(${JSON.stringify(configFile)}).href;
 const raw = await import(configFileUrl);
 const config = raw.default ?? raw;
@@ -118,6 +155,7 @@ if (!config || !Array.isArray(config.modules)) {
   process.exit(1);
 }
 
+// ─── 扫描各模块 ───────────────────────────────────────────────────────────────
 const results = [];
 
 for (const mod of config.modules) {
@@ -126,7 +164,15 @@ for (const mod of config.modules) {
     : nodePath.resolve(${configDirStr}, mod.path);
 
   try {
-    const result = await mod.adapter.scan(modulePath);
+    // 如果 adapter 是字符串（包名），则动态解析并加载
+    let adapter = mod.adapter;
+    if (typeof adapter === "string") {
+      const adapterPath = resolveFrom(adapter);
+      const adapterMod = await import(pathToFileURL(adapterPath).href);
+      adapter = (adapterMod.default ?? adapterMod)();
+    }
+
+    const result = await adapter.scan(modulePath);
     results.push({
       name: mod.name,
       root: modulePath,
@@ -182,7 +228,7 @@ export const scanProject = async (
   // 关键：tsx 从文件位置向上找 tsconfig，写到 projectRoot 确保读取项目自己的 tsconfig
   // 而不是 vscode-extension 的 tsconfig（后者 target=ES2020 不支持 top-level await）
   const runnerPath = path.join(projectRoot, `.kb-skills-runner-${Date.now()}.ts`);
-  writeFileSync(runnerPath, buildRunnerScript(configFile), "utf-8");
+  writeFileSync(runnerPath, buildRunnerScript(configFile, _extensionNodeModules), "utf-8");
 
   let stdout = "";
   let stderr = "";

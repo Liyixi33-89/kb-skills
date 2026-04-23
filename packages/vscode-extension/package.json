@@ -17,7 +17,8 @@
   "activationEvents": [
     "workspaceContains:kb-skills.config.ts",
     "workspaceContains:kb-skills.config.js",
-    "workspaceContains:kb-skills.config.mjs"
+    "workspaceContains:kb-skills.config.mjs",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -41,6 +42,12 @@
       ]
     },
     "commands": [
+      {
+        "command": "kbSkills.init",
+        "title": "初始化项目（生成 kb-skills.config.ts）",
+        "icon": "$(add)",
+        "category": "KB Skills"
+      },
       {
         "command": "kbSkills.refresh",
         "title": "刷新扫描结果",
@@ -67,6 +74,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "kbSkills.init",
+          "when": "view == kbSkillsModules",
+          "group": "navigation@0"
+        },
         {
           "command": "kbSkills.scan",
           "when": "view == kbSkillsModules",
@@ -123,6 +135,13 @@
   },
   "dependencies": {
     "@kb-skills/core": "^0.3.3",
+    "@kb-skills/adapter-koa": "^2.0.1",
+    "@kb-skills/adapter-express": "^2.0.1",
+    "@kb-skills/adapter-nestjs": "^1.0.1",
+    "@kb-skills/adapter-react": "^2.1.0",
+    "@kb-skills/adapter-react-native": "^1.1.0",
+    "@kb-skills/adapter-vue2": "^1.0.1",
+    "@kb-skills/adapter-vue3": "^2.1.0",
     "jiti": "^2.4.2"
   }
 }
