@@ -22,14 +22,15 @@
 
 | 包 | 版本 | 说明 |
 |---|---|---|
-| [`@kb-skills/core`](./packages/core) | `0.3.1` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
-| [`@kb-skills/cli`](./packages/cli) | `0.1.1` | 命令行工具 `kb-skills` |
-| [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.0` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
-| [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.0` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
-| [`@kb-skills/adapter-nestjs`](./packages/adapter-nestjs) | `1.0.0` | **NestJS** + Mongoose / Prisma / TypeORM / Sequelize 后端 |
+| [`@kb-skills/core`](./packages/core) | `0.3.3` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
+| [`@kb-skills/cli`](./packages/cli) | `0.2.0` | 命令行工具 `kb-skills` |
+| [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.1` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
+| [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.1` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
+| [`@kb-skills/adapter-nestjs`](./packages/adapter-nestjs) | `1.0.1` | **NestJS** + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-react`](./packages/adapter-react) | `2.1.0` | React 19 / **Next.js 13+** + Zustand 前端（支持 Ant Design） |
 | [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.1.0` | Vue 3 / **Nuxt 3** + Pinia 前端（支持 Element Plus / Naive UI） |
 | [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.1` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
+| [`@kb-skills/adapter-react-native`](./packages/adapter-react-native) | `1.1.0` | **React Native** / Expo 移动端（支持 Zustand） |
 
 ---
 
@@ -50,6 +51,8 @@ npm i -D @kb-skills/cli @kb-skills/adapter-react
 npm i -D @kb-skills/cli @kb-skills/adapter-vue3
 # Vue 2 遗留项目
 npm i -D @kb-skills/cli @kb-skills/adapter-koa @kb-skills/adapter-vue2
+# React Native / Expo
+npm i -D @kb-skills/cli @kb-skills/adapter-react-native
 ```
 
 ### 方式 2：纯前端 / 全栈框架项目
@@ -65,6 +68,8 @@ npm i -D @kb-skills/cli @kb-skills/adapter-vue3
 npm i -D @kb-skills/cli @kb-skills/adapter-vue3
 # Vue 2
 npm i -D @kb-skills/cli @kb-skills/adapter-vue2
+# React Native / Expo
+npm i -D @kb-skills/cli @kb-skills/adapter-react-native
 ```
 
 ### 方式 3：纯后端项目
@@ -101,7 +106,7 @@ npx kb-skills init
 ```
 
 自动完成：
-- 🔍 检测技术栈（React / Vue 2 / Vue 3 / Koa / Express / **NestJS** / Next.js / Nuxt）
+- 🔍 检测技术栈（React / Vue 2 / Vue 3 / Koa / Express / **NestJS** / Next.js / Nuxt / **React Native**）
 - 📝 生成 `kb-skills.config.ts`
 - 📂 创建 `kb/00_project_constitution.md`
 
@@ -226,6 +231,22 @@ export default defineConfig({
 });
 ```
 
+### React Native / Expo 示例
+
+> `adapter-react-native` 自动识别 `react-native` / `expo` 依赖，扫描 `src/screens/`、`src/navigation/`、`src/components/`、`src/store/`、`src/api/`。
+
+```ts
+import { defineConfig } from "@kb-skills/cli/config";
+import rnAdapter from "@kb-skills/adapter-react-native";
+
+export default defineConfig({
+  kbRoot: "./kb",
+  modules: [
+    { name: "app", path: ".", adapter: rnAdapter() },
+  ],
+});
+```
+
 ---
 
 ## 🧩 适配器一览
@@ -245,6 +266,7 @@ export default defineConfig({
 | `@kb-skills/adapter-react` | React 19 · **Next.js 13+** | Ant Design · Ant Design Mobile · MUI · Chakra UI |
 | `@kb-skills/adapter-vue3` | Vue 3 · **Nuxt 3** + Pinia | Element Plus · Naive UI · Ant Design |
 | `@kb-skills/adapter-vue2` | Vue 2 + Vuex | Element UI · Vant · Ant Design |
+| `@kb-skills/adapter-react-native` | **React Native** · **Expo** | — |
 
 ### 自动检测规则
 
@@ -252,7 +274,7 @@ export default defineConfig({
 
 ```
 koa → express → nestjs → next(→ react adapter) → nuxt(→ vue3 adapter)
-→ react → vue2 → vue3
+→ react-native(→ react-native adapter) → react → vue2 → vue3
 ```
 
 > **Monorepo glob 支持**：`packages/*`、`apps/*` 等通配符 workspace 路径现已自动展开，无需手动列举子包。

@@ -218,4 +218,32 @@ describe("detectStack", () => {
     // 'empty' dir has no package.json, should not appear
     expect(res.candidateModules).toHaveLength(2);
   });
+
+  it("detects a React Native project (react-native dep takes priority over react)", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-rn-app",
+        dependencies: { "react-native": "^0.73.0", react: "^18.0.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["react-native"]);
+    expect(res.candidateModules[0]?.stack).toBe("react-native");
+  });
+
+  it("detects an Expo project via 'expo' dep (takes priority over react)", async () => {
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({
+        name: "my-expo-app",
+        dependencies: { expo: "^50.0.0", react: "^18.0.0", "react-native": "^0.73.0" },
+      }),
+    );
+
+    const res = await detectStack(tmp);
+    expect(res.stacks).toEqual(["react-native"]);
+    expect(res.candidateModules[0]?.stack).toBe("react-native");
+  });
 });

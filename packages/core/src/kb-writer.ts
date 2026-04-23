@@ -24,6 +24,7 @@ import type {
   OrmKind,
   ReactRaw,
   ReactPageInfo,
+  ReactNativeRaw,
   ScanResult,
   TsFileInfo,
   Vue3Raw,
@@ -815,10 +816,100 @@ const writeVue2StoreIndex = async (raw: Vue2Raw, outDir: string): Promise<void> 
   await writeFileEnsuring(path.join(outDir, "04_index_store.md"), join(L));
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// NestJS writers
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// React Native writers
+// ═══════════════════════════════════════════════════════════════════
 
+const writeRnProjectMap = async (
+  mod: ModuleInfo,
+  raw: ReactNativeRaw,
+  outDir: string,
+): Promise<void> => {
+  const L: string[] = [`# ${mod.name} — React Native 项目全景`, ""];
+  const platform = raw.isExpo ? "Expo" : "React Native (bare)";
+  L.push(`**技术栈**: ${platform} + TypeScript`);
+  L.push(`**路径**: ${mod.root}`, "");
+  L.push("## 目录结构", "", "```", "src/");
+  L.push("├── screens/          # 屏幕组件（等同 web 的 pages）");
+  L.push("├── components/       # 公共组件");
+  L.push("├── navigation/       # React Navigation 路由配置");
+  L.push("├── hooks/            # 自定义 Hooks");
+  L.push("├── store/            # 状态管理（Zustand / Redux）");
+  L.push("├── api/              # API 请求封装");
+  L.push("└── types/            # TypeScript 类型定义");
+  L.push("```", "");
+
+  if (raw.navigation.length > 0) {
+    L.push("## 导航路由", "", "| 屏幕名 | 组件 |", "|--------|------|" );
+    for (const r of raw.navigation) L.push(`| ${r.name} | ${r.component} |`);
+    L.push("");
+  }
+
+  L.push("## 统计", "");
+  L.push(`- 屏幕: ${raw.screens.length} 个`);
+  L.push(`- 组件: ${raw.components.length} 个`);
+  L.push(`- 导航路由: ${raw.navigation.length} 个`);
+  L.push(`- Hooks: ${raw.hooks.length} 个`);
+  L.push(`- Store 文件: ${raw.storeFiles.length} 个`);
+  L.push(`- API 文件: ${raw.apiFiles.length} 个`);
+  await writeFileEnsuring(path.join(outDir, "00_project_map.md"), join(L));
+};
+
+const writeRnScreenIndex = async (raw: ReactNativeRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 屏幕索引", ""];
+  if (raw.navigation.length > 0) {
+    L.push("## 导航路由表", "", "| # | 屏幕名 | 组件 |", "|---|--------|------|" );
+    raw.navigation.forEach((r, i) => L.push(`| ${i + 1} | ${r.name} | ${r.component} |`));
+    L.push("");
+  }
+  L.push("## 屏幕功能摘要", "");
+  L.push(
+    "| # | 屏幕 | 文件 | useState 数 | useEffect 数 | API 调用 |",
+    "|---|------|------|------------|------------|---------|" ,
+  );
+  raw.screens.forEach((s, i) => {
+    const apis = s.apiCalls.slice(0, 3).join(", ") || "—";
+    L.push(`| ${i + 1} | ${s.name} | ${s.relPath ?? ""} | ${s.states.length} | ${s.effectCount} | ${apis} |`);
+  });
+  L.push("");
+  await writeFileEnsuring(path.join(outDir, "01_index_page.md"), join(L));
+};
+
+const writeRnComponentIndex = async (raw: ReactNativeRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# 公共组件索引", ""];
+  if (raw.components.length === 0) {
+    L.push("> 该模块无公共组件", "");
+  } else {
+    L.push("## 组件总览", "");
+    L.push("| # | 组件名 | 文件 | Props 数 |", "|---|--------|------|---------|" );
+    raw.components.forEach((c, i) =>
+      L.push(`| ${i + 1} | ${c.name} | ${c.relPath ?? ""} | ${c.props?.length ?? 0} |`),
+    );
+    L.push("");
+  }
+  await writeFileEnsuring(path.join(outDir, "02_index_component.md"), join(L));
+};
+
+const writeRnStoreIndex = async (raw: ReactNativeRaw, outDir: string): Promise<void> => {
+  const L: string[] = ["# Store 索引", ""];
+  if (raw.storeFiles.length === 0) {
+    L.push("> 该模块无 Store 文件", "");
+  } else {
+    for (const sf of raw.storeFiles) {
+      L.push(`## ${path.basename(sf.file)}`, "", `**文件**: ${sf.relPath ?? ""}`, "");
+      if (sf.exports.length > 0) {
+        L.push("**导出**:", "", "| 导出名 |", "|--------|" );
+        for (const e of sf.exports) L.push(`| ${e} |`);
+        L.push("");
+      }
+    }
+  }
+  await writeFileEnsuring(path.join(outDir, "04_index_store.md"), join(L));
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// NestJS writers
+// ═══════════════════════════════════════════════════════════════════
 const writeNestProjectMap = async (
   mod: ModuleInfo,
   raw: NestRaw,
@@ -1062,6 +1153,23 @@ export const writeKb = async (opts: WriteKbOptions): Promise<void> => {
       await writeTypesIndex(raw.typesFiles, outDir);
       await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
       await writeChangelog(outDir, "覆盖全量视图、组件、API、Store、Types");
+      await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
+    } else if (mod.kind === "frontend" && mod.raw?.framework === "react-native") {
+      const raw = mod.raw as ReactNativeRaw;
+      const outDir = path.join(kbRoot, "frontend", mod.name);
+      await writeRnProjectMap(mod, raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/00_project_map.md`);
+      await writeRnScreenIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/01_index_page.md`);
+      await writeRnComponentIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/02_index_component.md`);
+      await writeApiIndex(raw.apiFiles, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/03_index_api.md`);
+      await writeRnStoreIndex(raw, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/04_index_store.md`);
+      await writeTypesIndex(raw.typesFiles, outDir);
+      await opts.onFileWritten?.(`frontend/${mod.name}/05_index_types.md`);
+      await writeChangelog(outDir, "覆盖全量 Screen、组件、API、Store、Types");
       await opts.onFileWritten?.(`frontend/${mod.name}/changelog.md`);
     } else if (mod.kind === "backend" && mod.raw?.framework === "nestjs") {
       const raw = mod.raw as NestRaw;

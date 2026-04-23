@@ -26,52 +26,17 @@ import {
   type KoaInterfaceField,
   type ModuleInfo,
   type ReactComponentInfo,
+  type ReactNativeRaw,
+  type ReactNativeScreenInfo,
+  type ReactNativeRoute,
   type ScanAdapter,
   type SymbolInfo,
   type TsFileInfo,
 } from "@kb-skills/core";
 
-// ─── types ────────────────────────────────────────────────────────────────────
+// ─── types (re-exported for consumers) ───────────────────────────────────────
 
-export interface ReactNativeScreenInfo extends TsFileInfo {
-  /** Screen name (file stem), e.g. "HomeScreen". */
-  name: string;
-  /** useState calls extracted from the screen. */
-  states: Array<{ name: string; setter: string; type: string; initial: string }>;
-  /** Number of useEffect calls. */
-  effectCount: number;
-  /** Deduplicated `api.xxx` call names. */
-  apiCalls: string[];
-  /** `const handleXxx =` handler names. */
-  handlers: string[];
-}
-
-export interface ReactNativeRoute {
-  /** Screen name registered in the navigator. */
-  name: string;
-  /** Component name. */
-  component: string;
-}
-
-export interface ReactNativeRaw {
-  framework: "react-native";
-  /** True when the project has an `expo` dependency. */
-  isExpo?: boolean;
-  /** Screen files from `src/screens/`. */
-  screens: ReactNativeScreenInfo[];
-  /** Shared component files from `src/components/`. */
-  components: ReactComponentInfo[];
-  /** Navigation route definitions extracted from `src/navigation/`. */
-  navigation: ReactNativeRoute[];
-  /** Custom hook files from `src/hooks/`. */
-  hooks: TsFileInfo[];
-  /** Store files from `src/store/` or `src/stores/`. */
-  storeFiles: TsFileInfo[];
-  /** API helper files from `src/api/`. */
-  apiFiles: TsFileInfo[];
-  /** Type definition files from `src/types/`. */
-  typesFiles: TsFileInfo[];
-}
+export type { ReactNativeRaw, ReactNativeScreenInfo, ReactNativeRoute };
 
 // ─── adapter options ──────────────────────────────────────────────────────────
 
