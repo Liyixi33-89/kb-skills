@@ -1,0 +1,129 @@
+{
+  "name": "kb-skills-vscode",
+  "displayName": "KB Skills",
+  "description": "Visualize kb-skills scan results in the VSCode sidebar with file navigation",
+  "version": "0.1.0",
+  "publisher": "kb-skills",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["kb-skills", "knowledge-base", "scan", "visualization"],
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Liyixi33-89/kb-skills"
+  },
+  "activationEvents": [
+    "workspaceContains:kb-skills.config.ts",
+    "workspaceContains:kb-skills.config.js",
+    "workspaceContains:kb-skills.config.mjs"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "kb-skills-explorer",
+          "title": "KB Skills",
+          "icon": "resources/kb-skills-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "kb-skills-explorer": [
+        {
+          "id": "kbSkillsModules",
+          "name": "项目模块",
+          "icon": "resources/kb-skills-icon.svg",
+          "contextualTitle": "KB Skills"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "kbSkills.refresh",
+        "title": "刷新扫描结果",
+        "icon": "$(refresh)",
+        "category": "KB Skills"
+      },
+      {
+        "command": "kbSkills.scan",
+        "title": "重新扫描项目",
+        "icon": "$(search)",
+        "category": "KB Skills"
+      },
+      {
+        "command": "kbSkills.openFile",
+        "title": "打开文件",
+        "category": "KB Skills"
+      },
+      {
+        "command": "kbSkills.copySymbolName",
+        "title": "复制符号名称",
+        "icon": "$(copy)",
+        "category": "KB Skills"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "kbSkills.scan",
+          "when": "view == kbSkillsModules",
+          "group": "navigation@1"
+        },
+        {
+          "command": "kbSkills.refresh",
+          "when": "view == kbSkillsModules",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "kbSkills.copySymbolName",
+          "when": "view == kbSkillsModules && viewItem == symbol",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "KB Skills",
+      "properties": {
+        "kbSkills.configFile": {
+          "type": "string",
+          "default": "",
+          "description": "kb-skills 配置文件路径（相对于工作区根目录），留空则自动查找"
+        },
+        "kbSkills.autoScanOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "打开工作区时自动扫描"
+        },
+        "kbSkills.showFileRelativePath": {
+          "type": "boolean",
+          "default": true,
+          "description": "在 tooltip 中显示文件相对路径"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --platform=node --target=node18 --sourcemap",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --platform=node --target=node18 --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@kb-skills/core": "^0.3.3",
+    "jiti": "^2.4.2"
+  }
+}
