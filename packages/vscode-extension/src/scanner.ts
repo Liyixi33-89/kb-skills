@@ -7,12 +7,62 @@
 
 import path from "node:path";
 import { existsSync, writeFileSync, unlinkSync } from "node:fs";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { tmpdir } from "node:os";
+import { spawn } from "node:child_process";
 import type { ScanCache, ScannedModule } from "./types";
 
-const execFileAsync = promisify(execFile);
+/** 用 spawn 执行命令，返回 { stdout, stderr }，Windows .cmd 文件需要 shell:true */
+const spawnAsync = (
+  cmd: string,
+  args: string[],
+  options: { cwd: string; timeout: number; maxBuffer: number; env: NodeJS.ProcessEnv },
+): Promise<{ stdout: string; stderr: string }> =>
+  new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    const errChunks: Buffer[] = [];
+    let totalSize = 0;
+
+    // Windows 下 .cmd 文件必须通过 shell 执行
+    const isWindows = process.platform === "win32";
+    const proc = spawn(cmd, args, {
+      cwd: options.cwd,
+      env: options.env,
+      shell: isWindows,           // ← 关键：Windows 下开启 shell 才能执行 .cmd
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      proc.kill();
+      reject(new Error(`扫描超时（${options.timeout / 1000}s）`));
+    }, options.timeout);
+
+    proc.stdout.on("data", (chunk: Buffer) => {
+      totalSize += chunk.length;
+      if (totalSize > options.maxBuffer) {
+        proc.kill();
+        reject(new Error("扫描输出超过最大缓冲区限制"));
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    proc.stderr.on("data", (chunk: Buffer) => errChunks.push(chunk));
+
+    proc.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    proc.on("close", (code) => {
+      clearTimeout(timer);
+      const stdout = Buffer.concat(chunks).toString("utf-8");
+      const stderr = Buffer.concat(errChunks).toString("utf-8");
+      if (code !== 0 && !stdout) {
+        reject(Object.assign(new Error(`进程退出码 ${code}\n${stderr}`.trim()), { stdout, stderr }));
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
 
 // ─── Config file candidates ───────────────────────────────────────────────────
 
@@ -150,13 +200,13 @@ export const scanProject = async (
 
     const args = [runnerPath];
 
-    const result = await execFileAsync(tsxBin, args, {
-      cwd: projectRoot,           // ← 关键：在项目目录下执行，node_modules 解析正确
+    const result = await spawnAsync(tsxBin, args, {
+      cwd: projectRoot,
       timeout: 60_000,
       maxBuffer: 10 * 1024 * 1024,
       env: {
         ...process.env,
-        NODE_PATH: path.join(projectRoot, "node_modules"), // 额外保障
+        NODE_PATH: path.join(projectRoot, "node_modules"),
       },
     });
 
