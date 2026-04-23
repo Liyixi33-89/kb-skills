@@ -74,17 +74,14 @@ export const scanProject = async (
   configFile: string,
   onProgress?: (msg: string) => void,
 ): Promise<ScanCache> => {
-  // createJiti 第一个参数是「调用者」的 file URL，用于解析相对路径
-  // VSCode 插件以 CommonJS bundle 运行，没有 import.meta.url，用 __filename 替代
+  // createJiti 第一个参数是「发起 import 的文件」的 file URL
+  // 必须传 configFile 自身的路径，jiti 才能从 config 所在目录向上查找 node_modules
+  // configFile 已经是绝对路径，直接转成 file URL 即可
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { pathToFileURL } = require("url") as typeof import("url");
-  // __filename 在 esbuild CommonJS bundle 中是全局变量
-  const callerUrl =
-    typeof __filename !== "undefined"
-      ? pathToFileURL(__filename).href
-      : pathToFileURL(configFile).href;
+  const configFileUrl = pathToFileURL(configFile).href;
 
-  const jiti = createJiti(callerUrl, {
+  const jiti = createJiti(configFileUrl, {
     interopDefault: true,
     moduleCache: false,
   });
