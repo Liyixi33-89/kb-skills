@@ -10,6 +10,15 @@
   },
   "categories": ["Other"],
   "keywords": ["kb-skills", "knowledge-base", "scan", "visualization"],
+  "icon": "resources/kb-skills-icon.svg",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/Liyixi33-89/kb-skills",
+  "bugs": {
+    "url": "https://github.com/Liyixi33-89/kb-skills/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Liyixi33-89/kb-skills"
@@ -124,6 +133,8 @@
     "watch": "node ./node_modules/esbuild/bin/esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --platform=node --target=node18 --sourcemap --watch",
     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "package": "node ./node_modules/@vscode/vsce/bin/vsce package --no-dependencies",
+    "publish": "node ./node_modules/@vscode/vsce/bin/vsce publish --no-dependencies",
+    "publish:pre": "node ./node_modules/@vscode/vsce/bin/vsce publish --pre-release --no-dependencies",
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {

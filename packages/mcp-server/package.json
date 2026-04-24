@@ -1,0 +1,56 @@
+{
+  "name": "@kb-skills/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for kb-skills — exposes project KB to AI coding assistants (Cursor, Claude Desktop, Windsurf)",
+  "license": "MIT",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "kb-skills-mcp": "./bin/kb-skills-mcp.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc -b --pretty"
+  },
+  "dependencies": {
+    "@kb-skills/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "jiti": "^2.4.2",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "cursor",
+    "claude",
+    "kb-skills",
+    "code-intelligence",
+    "knowledge-base"
+  ]
+}
