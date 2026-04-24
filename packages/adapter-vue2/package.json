@@ -26,7 +26,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --target node18 --tsconfig ./tsconfig.build.json",
+    "build": "node ../../scripts/build-pkg.mjs --dual",
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch --target node18 --tsconfig ./tsconfig.build.json",
     "typecheck": "tsc -b --pretty"
   },

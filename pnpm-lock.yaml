@@ -11,6 +11,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.27.11
         version: 2.31.0(@types/node@22.19.17)
+      '@rollup/rollup-win32-x64-msvc':
+        specifier: ^4.60.2
+        version: 4.60.2
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.17
@@ -1006,6 +1009,7 @@ packages:
     resolution: {integrity: sha512-2QxQrM+KQ7DAW4o22j+XZ6RKdxjLD7BOWTP0Bv0tmjdyhXSsr2Ul1oJDQqh9Zf5qOwTuTc7Ek83mOFaKnodPjg==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.60.2':
     resolution: {integrity: sha512-TbziEu2DVsTEOPif2mKWkMeDMLoYjx95oESa9fkQQK7r/Orta0gnkcDpzwufEcAO2BLBsD7mZkXGFqEdMRRwfw==}
@@ -4081,8 +4085,7 @@ snapshots:
   '@rollup/rollup-win32-x64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-x64-msvc@4.60.2':
-    optional: true
+  '@rollup/rollup-win32-x64-msvc@4.60.2': {}
 
   '@secretlint/config-creator@10.2.2':
     dependencies:

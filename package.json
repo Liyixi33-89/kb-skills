@@ -8,8 +8,8 @@
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "pnpm -r --filter \"./packages/*\" run build",
-    "dev": "pnpm -r --parallel --filter \"./packages/*\" run dev",
+    "build": "pnpm -r --filter \"./packages/*\" --filter \"!kb-skills-vscode\" run build",
+    "dev": "pnpm -r --parallel --filter \"./packages/*\" --filter \"!kb-skills-vscode\" run dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
@@ -19,12 +19,13 @@
     "changeset": "changeset",
     "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
-    "release:npm": "pnpm build && pnpm -r --filter \"./packages/*\" publish --access public --no-git-checks",
-    "release:npm:dry": "pnpm build && pnpm -r --filter \"./packages/*\" publish --access public --no-git-checks --dry-run",
+    "release:npm": "pnpm build && pnpm -r --filter \"./packages/*\" --filter \"!kb-skills-vscode\" publish --access public --no-git-checks",
+    "release:npm:dry": "pnpm build && pnpm -r --filter \"./packages/*\" --filter \"!kb-skills-vscode\" publish --access public --no-git-checks --dry-run",
     "sync-skills": "tsx scripts/sync-skills.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11",
+    "@rollup/rollup-win32-x64-msvc": "^4.60.2",
     "@types/node": "^22.10.2",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2",

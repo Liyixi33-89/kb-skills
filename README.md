@@ -31,6 +31,7 @@
 | [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.1.0` | Vue 3 / **Nuxt 3** + Pinia 前端（支持 Element Plus / Naive UI） |
 | [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.1` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
 | [`@kb-skills/adapter-react-native`](./packages/adapter-react-native) | `1.1.0` | **React Native** / Expo 移动端（支持 Zustand） |
+| [`@kb-skills/mcp-server`](./packages/mcp-server) | `1.0.0` | **MCP Server** — 将 KB 通过 MCP 协议暴露给 Cursor / Claude Desktop / Windsurf |
 
 ---
 
@@ -342,6 +343,64 @@ kb/
     ├── pages/<page>.md          # 页面详情（React）
     └── changelog.md
 ```
+
+---
+
+## 🤖 MCP Server（AI 工具直连）
+
+`@kb-skills/mcp-server` 将知识库通过 **MCP（Model Context Protocol）** 协议暴露给 AI 编码助手，让 Cursor / Claude Desktop / Windsurf 可以**主动查询**你的项目，而不是被动读取静态文件。
+
+### 安装
+
+```bash
+npm i -D @kb-skills/mcp-server
+```
+
+### 配置 Cursor
+
+在项目根目录创建 `.cursor/mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "kb-skills": {
+      "command": "npx",
+      "args": ["@kb-skills/mcp-server"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+### 配置 Claude Desktop
+
+编辑 `claude_desktop_config.json`：
+
+```json
+{
+  "mcpServers": {
+    "kb-skills": {
+      "command": "npx",
+      "args": ["@kb-skills/mcp-server", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+### 可用 Tools（8 个）
+
+| Tool | 说明 |
+|------|------|
+| `search_symbol` | 按名称/类型搜索路由、服务、组件、Model 等符号 |
+| `get_module_map` | 获取项目模块全景（含 `00_project_map.md`） |
+| `get_route_detail` | 按路由路径查找 KB 文档和源码位置 |
+| `get_kb_file` | 直接读取任意 KB 文件内容 |
+| `list_skills` | 列出所有内置 Skills |
+| `get_skill` | 获取指定 Skill 的完整提示词 |
+| `get_kb_status` | 查看 KB 覆盖率和验证报告 |
+| `run_scan` | 触发重新扫描，刷新缓存 |
+
+> 详细文档见 [`packages/mcp-server/README.md`](./packages/mcp-server/README.md)
 
 ---
 

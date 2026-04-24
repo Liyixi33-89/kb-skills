@@ -13,9 +13,19 @@ import type { SkillMeta } from "./types";
 
 /** Locate the `assets/skills/` folder relative to this compiled file. */
 const resolveAssetsDir = (): string => {
+  // 兼容 ESM 和 CJS：
+  // - CJS 环境下 __dirname 直接可用
+  // - ESM 环境下用 eval 绕过 tsc 对 import.meta 的静态检查
+  let here: string;
+  if (typeof __dirname !== "undefined") {
+    here = __dirname;
+  } else {
+    // eslint-disable-next-line no-eval
+    const url: string = eval("import.meta.url");
+    here = path.dirname(fileURLToPath(url));
+  }
   // dist/index.js sits at <pkg>/dist/index.js, assets at <pkg>/assets/skills
-  const here = fileURLToPath(import.meta.url);
-  return path.resolve(path.dirname(here), "..", "assets", "skills");
+  return path.resolve(here, "..", "assets", "skills");
 };
 
 const parseDescription = (markdown: string): string => {

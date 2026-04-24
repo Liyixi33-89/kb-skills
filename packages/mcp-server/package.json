@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP Server for kb-skills — exposes project KB to AI coding assistants (Cursor, Claude Desktop, Windsurf)",
   "license": "MIT",
   "type": "module",
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc -b --pretty"
   },
   "dependencies": {

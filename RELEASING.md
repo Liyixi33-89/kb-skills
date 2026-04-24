@@ -363,7 +363,8 @@ npm deprecate @kb-skills/<pkg>@<version> "Contains critical bug, please upgrade 
 @kb-skills/core ───────┬─> @kb-skills/cli
                        ├─> @kb-skills/adapter-koa
                        ├─> @kb-skills/adapter-express
-                       └─> @kb-skills/adapter-react
+                       ├─> @kb-skills/adapter-react
+                       └─> @kb-skills/mcp-server
 ```
 
 - `core` 是被依赖者；core bump 时下游 `adapter-*` / `cli` 会**自动 patch**（`updateInternalDependencies: patch`）
