@@ -1,3 +1,13 @@
+---
+symbol: users-router
+kind: route
+file: server/src/routes/users.ts
+module: server
+dependencies: ["User"]
+calledBy: []
+exports: ["GET /users", "GET /users/:id", "POST /users", "PUT /users/:id", "DELETE /users/:id"]
+updatedAt: 2026-04-27T16:00:00Z
+---
 # users 路由
 
 **文件**: server/src/routes/users.ts

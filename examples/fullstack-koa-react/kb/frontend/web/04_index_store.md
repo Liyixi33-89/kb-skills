@@ -1,3 +1,13 @@
+---
+symbol: useUserStore
+kind: store
+file: src/store/userStore.ts
+module: web
+dependencies: ["fetchUsers", "createUser", "deleteUser"]
+calledBy: ["UserList"]
+exports: ["useUserStore"]
+updatedAt: 2026-04-27T16:00:00Z
+---
 # Zustand Store 索引
 
 ## userStore.ts
