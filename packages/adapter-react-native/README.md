@@ -1,5 +1,7 @@
 # @kb-skills/adapter-react-native
 
+**English** | [中文](./README.zh-CN.md)
+
 > Scan adapter for **React Native** (bare workflow) and **Expo** projects.
 
 ## Installation

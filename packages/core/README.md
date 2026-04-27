@@ -1,5 +1,7 @@
 # @kb-skills/core
 
+**English** | [中文](./README.zh-CN.md)
+
 Framework-agnostic core primitives for [kb-skills](https://github.com/Liyixi33-89/kb-skills):
 
 - `ScanAdapter` — pluggable code scanners (Koa / Express / React / Vue 2 / Vue 3 / ...)

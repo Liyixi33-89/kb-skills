@@ -1,5 +1,7 @@
 # @kb-skills/adapter-vue2
 
+**English** | [中文](./README.zh-CN.md)
+
 > Scan adapter for **Vue 2 + Vuex** frontends, powering [`kb-skills`](https://github.com/Liyixi33-89/kb-skills).
 
 Parses your Vue 2 project (Options API `.vue` SFCs) and emits a `ModuleInfo` consumed by

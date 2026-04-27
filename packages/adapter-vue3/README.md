@@ -1,5 +1,7 @@
 # @kb-skills/adapter-vue3
 
+**English** | [中文](./README.zh-CN.md)
+
 > Scan adapter for **Vue 3 + Pinia** frontends, powering [`kb-skills`](https://github.com/Liyixi33-89/kb-skills).
 
 Parses your Vue 3 project (Composition API `.vue` SFCs) and emits a `ModuleInfo` consumed by

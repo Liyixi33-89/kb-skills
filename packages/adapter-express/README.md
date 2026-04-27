@@ -1,5 +1,7 @@
 # @kb-skills/adapter-express
 
+**English** | [中文](./README.zh-CN.md)
+
 > Scan adapter for **Express + Mongoose** backends, powering [`kb-skills`](https://github.com/Liyixi33-89/kb-skills).
 
 Parses your Express project and emits a `ModuleInfo` consumed by

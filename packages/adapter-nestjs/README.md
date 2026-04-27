@@ -1,5 +1,7 @@
 # @kb-skills/adapter-nestjs
 
+**English** | [中文](./README.zh-CN.md)
+
 > NestJS scan adapter for [kb-skills](https://github.com/your-org/kb-skills).
 
 Extracts controllers, services, guards, interceptors, pipes, filters, DTOs, and modules from a NestJS project and emits a structured `NestRaw` payload that `kb-writer` uses to generate a knowledge-base.

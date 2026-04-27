@@ -1,5 +1,7 @@
 # @kb-skills/adapter-react
 
+**English** | [中文](./README.zh-CN.md)
+
 > Scan adapter for **React 19 + Zustand** frontends, powering [`kb-skills`](https://github.com/Liyixi33-89/kb-skills).
 
 Parses your React project and emits a `ModuleInfo` consumed by

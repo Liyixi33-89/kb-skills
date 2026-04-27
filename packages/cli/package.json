@@ -24,7 +24,8 @@
     "dist",
     "bin",
     "templates",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "engines": {
     "node": ">=18.17"

@@ -1,34 +1,34 @@
 # @kb-skills/cli
 
-**English** | [中文](./README.zh-CN.md)
+[English](./README.md) | **中文**
 
-Command-line interface for [kb-skills](https://github.com/Liyixi33-89/kb-skills).
+[kb-skills](https://github.com/Liyixi33-89/kb-skills) 命令行工具。
 
-## Install
+## 安装
 
 ```bash
 npm i -D @kb-skills/cli
-# plus one or more adapters:
+# 以及一个或多个适配器：
 npm i -D @kb-skills/adapter-react      # React 19 + Zustand
 npm i -D @kb-skills/adapter-vue3       # Vue 3 + Pinia
 npm i -D @kb-skills/adapter-vue2       # Vue 2 + Vuex
-npm i -D @kb-skills/adapter-koa        # Koa backend
-npm i -D @kb-skills/adapter-express    # Express backend
+npm i -D @kb-skills/adapter-koa        # Koa 后端
+npm i -D @kb-skills/adapter-express    # Express 后端
 ```
 
-## Commands
+## 命令列表
 
-| Command | Description |
+| 命令 | 说明 |
 |---|---|
-| `kb-skills init` | Scaffold `kb-skills.config.ts` + KB skeleton |
-| `kb-skills list` | List bundled Skills (23 total) |
-| `kb-skills run <skill>` | Run a Skill (e.g. `doc-code-to-kb`, `bug-fix`) |
-| `kb-skills status` | Show KB generation progress |
-| `kb-skills verify` | Verify KB coverage |
+| `kb-skills init` | 生成 `kb-skills.config.ts` + KB 骨架 |
+| `kb-skills list` | 列出所有内置 Skills（共 23 个） |
+| `kb-skills run <skill>` | 运行指定 Skill（如 `doc-code-to-kb`、`bug-fix`） |
+| `kb-skills status` | 显示 KB 生成进度 |
+| `kb-skills verify` | 验证 KB 覆盖率 |
 
-## Config file
+## 配置文件
 
-`kb-skills.config.ts` lives at your project root:
+`kb-skills.config.ts` 位于项目根目录：
 
 ```ts
 import { defineConfig } from "@kb-skills/cli/config";
@@ -60,7 +60,7 @@ export default defineConfig({
 });
 ```
 
-### Vue 2 legacy project
+### Vue 2 遗留项目
 
 ```ts
 import { defineConfig } from "@kb-skills/cli/config";
@@ -76,30 +76,30 @@ export default defineConfig({
 });
 ```
 
-## Quick start
+## 快速开始
 
 ```bash
-# 1. Install
+# 1. 安装
 npm i -D @kb-skills/cli @kb-skills/adapter-react @kb-skills/adapter-koa
 
-# 2. Scaffold (auto-detects stack, writes kb-skills.config.ts + kb/00_project_constitution.md)
+# 2. 初始化（自动检测技术栈，生成 kb-skills.config.ts + kb/00_project_constitution.md）
 npx kb-skills init
 
-# 3. Generate the 5-layer Knowledge Base
+# 3. 生成五层知识库
 npx kb-skills run doc-code-to-kb
 
-# 4. Inspect progress any time
+# 4. 随时查看进度
 npx kb-skills status
 
-# 5. Verify KB completeness (CI-friendly, exits non-zero on gaps)
+# 5. 验证 KB 完整性（CI 友好，有缺口时以非零退出码退出）
 npx kb-skills verify
 ```
 
-## Stack auto-detection
+## 技术栈自动检测
 
-`kb-skills init` reads `package.json` and picks adapters automatically:
+`kb-skills init` 读取 `package.json` 并自动选择适配器：
 
-| Detected dep | Stack | Adapter used |
+| 检测到的依赖 | 技术栈 | 使用的适配器 |
 |---|---|---|
 | `koa` | Koa | `adapter-koa` |
 | `express` | Express | `adapter-express` |
@@ -109,34 +109,33 @@ npx kb-skills verify
 | `vue ^2.x` / `vue-template-compiler` | Vue 2 | `adapter-vue2` |
 | `vue ^3.x` | Vue 3 | `adapter-vue3` |
 
-## Command details
+## 命令详情
 
 ### `kb-skills init`
 
-Options:
+选项：
 
-- `-y, --yes` — skip interactive prompts, accept defaults
-- `--cwd <dir>` — run against a specific directory (default: `process.cwd()`)
+- `-y, --yes` — 跳过交互式提示，接受默认值
+- `--cwd <dir>` — 在指定目录下运行（默认：`process.cwd()`）
 
 ### `kb-skills run <skill>`
 
-Runs a Skill from `@kb-skills/core/assets/skills/`. Common Skills:
+运行 `@kb-skills/core/assets/skills/` 中的 Skill。常用 Skills：
 
-| Skill | Purpose |
+| Skill | 用途 |
 |---|---|
-| `doc-code-to-kb` | Scan your code → produce the 5-layer KB |
-| `kb-qa` | Ask questions against the KB |
-| `bug-fix` / `refactor` / `code-review` | Developer-assist Skills |
-| `gen-frontend-code` / `gen-backend-code` | Code generation |
-| `prd-brd-to-prd` / `prd-to-backend-design` / `prd-to-frontend-design` | PM flows |
+| `doc-code-to-kb` | 扫描代码 → 生成五层 KB |
+| `kb-qa` | 基于 KB 回答问题 |
+| `bug-fix` / `refactor` / `code-review` | 开发辅助 Skills |
+| `gen-frontend-code` / `gen-backend-code` | 代码生成 |
+| `prd-brd-to-prd` / `prd-to-backend-design` / `prd-to-frontend-design` | 产品经理流程 |
 
-Use `kb-skills list` to see every Skill bundled with your installed version.
+使用 `kb-skills list` 查看当前安装版本中所有内置 Skills。
 
 ### `kb-skills verify`
 
-Exits with code `1` when any KB file listed in `kb/progress.md` is still
-`⬜`. Safe to put in CI.
+当 `kb/progress.md` 中列出的任意 KB 文件仍为 `⬜` 时，以退出码 `1` 退出。可安全集成到 CI 流程中。
 
-## License
+## 许可证
 
 MIT
