@@ -603,3 +603,106 @@ export interface SkillContext {
   }>;
   logger: Logger;
 }
+
+// ─── KB 文件元数据（YAML Front Matter）────────────────────────────────────────
+
+/**
+ * KB 文件头部 YAML Front Matter 的结构化元数据。
+ * 由 kb-writer 在生成 KB 文件时注入，供 MCP Tools 快速解析依赖关系。
+ */
+export interface KbFileMeta {
+  /** 符号名称，如 UserService */
+  symbol: string;
+  /** 符号类型 */
+  kind: SymbolKind;
+  /** 源文件相对路径，如 src/services/user.service.ts */
+  file: string;
+  /** 所属模块名称 */
+  module: string;
+  /** 直接依赖的符号名称列表 */
+  dependencies: string[];
+  /** 被哪些符号调用 */
+  calledBy: string[];
+  /** 导出的内容列表 */
+  exports: string[];
+  /** 最后更新时间（ISO 8601） */
+  updatedAt: string;
+}
+
+// ─── 增量扫描相关类型 ─────────────────────────────────────────────────────────
+
+/**
+ * 单个文件的 hash 记录
+ */
+export interface FileHashRecord {
+  /** 文件绝对路径 */
+  file: string;
+  /** SHA-256 hash（hex） */
+  hash: string;
+  /** 最后修改时间戳（ms） */
+  mtime: number;
+}
+
+/**
+ * 增量扫描缓存，持久化到 .kb-skills/scan-cache.json
+ */
+export interface IncrementalScanCache {
+  /** 版本号，用于格式升级时清除旧缓存 */
+  version: number;
+  /** 上次全量扫描时间（ISO 8601） */
+  lastFullScanAt: string;
+  /** 上次增量扫描时间（ISO 8601） */
+  lastIncrementalAt: string;
+  /** 文件 hash 映射，key 为文件绝对路径 */
+  fileHashes: Record<string, FileHashRecord>;
+}
+
+/**
+ * 增量扫描分析结果
+ */
+export interface IncrementalDiff {
+  /** 新增的文件 */
+  added: string[];
+  /** 内容变更的文件 */
+  modified: string[];
+  /** 已删除的文件 */
+  deleted: string[];
+  /** 未变更的文件 */
+  unchanged: string[];
+  /** 需要重扫的模块名称列表 */
+  modulesToRescan: string[];
+}
+
+// ─── 外部资源适配器接口（第三期预留）────────────────────────────────────────────
+
+export interface ExternalSearchOptions {
+  limit?: number;
+  filters?: Record<string, string>;
+}
+
+export interface ExternalResource {
+  id: string;
+  title: string;
+  /** 纯文本内容（已去除 HTML/Markdown 格式） */
+  content: string;
+  /** 原始链接 */
+  url?: string;
+  /** 数据源标识，如 "github" | "confluence" */
+  source: string;
+  metadata?: Record<string, unknown>;
+  /** 0-1 相关度评分，由适配器填充 */
+  relevanceScore?: number;
+  /** ISO 时间戳 */
+  fetchedAt: string;
+}
+
+export interface ExternalResourceAdapter {
+  readonly name: string;
+  readonly description: string;
+  /** 检查连接是否可用 */
+  isAvailable(): Promise<boolean>;
+  /** 语义搜索 */
+  search(query: string, options?: ExternalSearchOptions): Promise<ExternalResource[]>;
+  /** 按 ID 获取单条资源 */
+  fetchById(id: string): Promise<ExternalResource | null>;
+}

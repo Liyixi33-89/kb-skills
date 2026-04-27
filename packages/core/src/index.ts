@@ -15,3 +15,7 @@ export * from "./utils/fs";
 export * from "./utils/path";
 export * from "./utils/scanner";
 export * from "./utils/orm";
+export * from "./utils/kb-meta";
+
+// 增量扫描引擎
+export * from "./incremental-scanner";

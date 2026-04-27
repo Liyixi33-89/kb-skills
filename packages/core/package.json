@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/core",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Core engine for kb-skills: Skill runner, KB writer, progress tracking and coverage verification.",
   "license": "MIT",
   "type": "module",

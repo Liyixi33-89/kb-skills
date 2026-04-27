@@ -1,7 +1,7 @@
 /**
  * server.ts — MCP Server 主体
  *
- * 使用 @modelcontextprotocol/sdk 注册所有 8 个 Tools，
+ * 使用 @modelcontextprotocol/sdk 注册所有 9 个 Tools，
  * 并将 @kb-skills/core 的能力通过 MCP 协议暴露给 AI 工具。
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -18,6 +18,7 @@ import { listAllSkills } from "./tools/list-skills.js";
 import { getSkill } from "./tools/get-skill.js";
 import { getKbStatus } from "./tools/get-kb-status.js";
 import { runScan } from "./tools/run-scan.js";
+import { searchSemantic, invalidateSemanticIndex } from "./tools/search-semantic.js";
 
 // ─── MCP 响应格式化辅助 ───────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ const toError = (message: string): { content: Array<{ type: "text"; text: string
 export const createKbSkillsServer = (ctx: McpContext): McpServer => {
   const server = new McpServer({
     name: "kb-skills",
-    version: "1.0.0",
+    version: "1.1.0",
   });
 
   const cache = new ScanCache(ctx);
@@ -128,9 +129,7 @@ export const createKbSkillsServer = (ctx: McpContext): McpServer => {
     {
       path: z
         .string()
-        .describe(
-          "相对于 kbRoot 的文件路径，如 server/api/users.md",
-        ),
+        .describe("相对于 kbRoot 的文件路径，如 server/api/users.md"),
     },
     async (input) => {
       try {
@@ -164,9 +163,7 @@ export const createKbSkillsServer = (ctx: McpContext): McpServer => {
     {
       name: z
         .string()
-        .describe(
-          "Skill 名称，如 doc-code-to-kb、bug-fix、code-review、gen-frontend-code 等",
-        ),
+        .describe("Skill 名称，如 doc-code-to-kb、bug-fix、code-review、gen-frontend-code 等"),
     },
     async (input) => {
       try {
@@ -196,20 +193,60 @@ export const createKbSkillsServer = (ctx: McpContext): McpServer => {
   // ── Tool 8: run_scan ───────────────────────────────────────────────────────
   server.tool(
     "run_scan",
-    "触发重新扫描项目代码，刷新 KB 文件和内存缓存。当代码有较大变更时使用，force=true 时忽略缓存强制重扫。",
+    "触发重新扫描项目代码，刷新 KB 文件和内存缓存。mode=incremental（默认）只重扫变更文件所在模块；mode=full 或 force=true 时全量重扫。",
     {
       force: z
         .boolean()
         .optional()
-        .default(true)
-        .describe("是否强制重扫，忽略缓存，默认 true"),
+        .default(false)
+        .describe("是否强制全量重扫，忽略缓存，默认 false"),
+      mode: z
+        .enum(["full", "incremental"])
+        .optional()
+        .default("incremental")
+        .describe("扫描模式：incremental（增量，默认）或 full（全量）"),
     },
     async (input) => {
       try {
         const result = await runScan(cache, input);
+        // 扫描完成后清除语义索引缓存，下次查询时重建
+        if (result.success) {
+          invalidateSemanticIndex(ctx.kbRoot);
+        }
         return toText(result);
       } catch (err) {
         return toError(`run_scan 失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+  );
+
+  // ── Tool 9: search_semantic ────────────────────────────────────────────────
+  server.tool(
+    "search_semantic",
+    "基于 TF-IDF 语义相似度搜索 KB 文件。支持自然语言查询，如「处理用户登录的服务」、「订单相关的 API」，比 search_symbol 更适合模糊意图搜索。完全本地运行，无需 API Key。",
+    {
+      query: z
+        .string()
+        .describe("自然语言查询，如「处理用户权限的服务」或「订单支付相关接口」"),
+      topK: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .optional()
+        .default(10)
+        .describe("返回最相关的文件数量，默认 10"),
+      module: z
+        .string()
+        .optional()
+        .describe("限定搜索的模块名称，不传则搜索全部模块"),
+    },
+    async (input) => {
+      try {
+        const result = await searchSemantic(ctx, input);
+        return toText(result);
+      } catch (err) {
+        return toError(`search_semantic 失败: ${err instanceof Error ? err.message : String(err)}`);
       }
     },
   );
