@@ -1,13 +1,3 @@
----
-symbol: UserList
-kind: page
-file: src/pages/UserList.tsx
-module: web
-dependencies: ["useUserStore", "UserCard", "fetchUsers", "createUser", "deleteUser"]
-calledBy: []
-exports: ["UserList"]
-updatedAt: 2026-04-27T16:00:00Z
----
 # UserList
 
 **文件**: src/pages/UserList.tsx

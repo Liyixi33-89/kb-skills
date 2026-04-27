@@ -1,13 +1,3 @@
----
-symbol: userService
-kind: service
-file: server/src/services/userService.ts
-module: server
-dependencies: ["User"]
-calledBy: ["users-router"]
-exports: ["findAllUsers", "findUserById", "createUser", "updateUser", "deleteUser"]
-updatedAt: 2026-04-27T16:00:00Z
----
 # userService
 
 **文件**: server/src/services/userService.ts

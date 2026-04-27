@@ -42,16 +42,16 @@ importers:
   examples/fullstack-koa-react:
     dependencies:
       '@kb-skills/adapter-koa':
-        specifier: ^2.0.1
+        specifier: workspace:*
         version: link:../../packages/adapter-koa
       '@kb-skills/adapter-react':
-        specifier: ^2.1.0
+        specifier: workspace:*
         version: link:../../packages/adapter-react
       '@kb-skills/cli':
         specifier: ^0.2.0
         version: link:../../packages/cli
       '@kb-skills/core':
-        specifier: ^0.3.3
+        specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
       typescript:
@@ -269,7 +269,7 @@ importers:
         version: link:../adapter-vue3
       '@kb-skills/core':
         specifier: ^0.3.3
-        version: link:../core
+        version: 0.3.3
       jiti:
         specifier: ^2.4.2
         version: 2.6.1
@@ -947,6 +947,10 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
+  '@kb-skills/core@0.3.3':
+    resolution: {integrity: sha512-ksMr12hIXapJzQoMUFjlV8Owz12R98iqvjb2iqLOyDZmNGlit4na2EnMdmJHkk9wOSr4Y8MFY2zRI4TQhQLLaA==}
+    engines: {node: '>=18.17'}
+
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
 
@@ -1009,7 +1013,6 @@ packages:
     resolution: {integrity: sha512-2QxQrM+KQ7DAW4o22j+XZ6RKdxjLD7BOWTP0Bv0tmjdyhXSsr2Ul1oJDQqh9Zf5qOwTuTc7Ek83mOFaKnodPjg==}
     cpu: [arm]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.60.2':
     resolution: {integrity: sha512-TbziEu2DVsTEOPif2mKWkMeDMLoYjx95oESa9fkQQK7r/Orta0gnkcDpzwufEcAO2BLBsD7mZkXGFqEdMRRwfw==}
@@ -1098,7 +1101,6 @@ packages:
 
   '@rollup/rollup-win32-x64-msvc@4.60.2':
     resolution: {integrity: sha512-Nd/SgG27WoA9e+/TdK74KnHz852TLa94ovOYySo/yMPuTmpckK/jIF2jSwS3g7ELSKXK13/cVdmg1Z/DaCWKxA==}
-    cpu: [x64]
     os: [win32]
 
   '@secretlint/config-creator@10.2.2':
@@ -3962,6 +3964,11 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@kb-skills/core@0.3.3':
+    dependencies:
+      fast-glob: 3.3.3
+      picocolors: 1.1.1
 
   '@manypkg/find-root@1.1.0':
     dependencies:

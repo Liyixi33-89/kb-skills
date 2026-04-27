@@ -16,6 +16,7 @@ const resolveAssetsDir = (): string => {
   // 兼容 ESM 和 CJS：
   // - CJS 环境下 __dirname 直接可用
   // - ESM 环境下用 eval 绕过 tsc 对 import.meta 的静态检查
+  //   （build-pkg.mjs 会在 CJS 后处理时将 eval("import.meta.url") 替换为 __filename）
   let here: string;
   if (typeof __dirname !== "undefined") {
     here = __dirname;

@@ -30,6 +30,45 @@ const run = (cmd) => {
 console.log("\n[build-pkg] 编译 ESM...");
 run("node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json");
 
+// ── Step 1.5: 修复 ESM 输出中缺少 .js 扩展名的相对路径 ───────────────────────
+console.log("\n[build-pkg] 修复 ESM 相对路径扩展名...");
+
+const distDir = path.join(cwd, "dist");
+
+const fixEsmExtensions = (dir) => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      fixEsmExtensions(fullPath);
+    } else if (entry.name.endsWith(".js") && !entry.name.endsWith(".cjs")) {
+      let content = fs.readFileSync(fullPath, "utf8");
+      // 修复 export/import 中缺少 .js 扩展名的相对路径
+      content = content.replace(
+        /((?:export|import)(?:\s+[\w\s{},*]+\s+from\s+|\s+\*\s+from\s+|\s+)["'])(\.\.?\/[^"']+?)(["'])/g,
+        (match, prefix, p, suffix) => {
+          // 已有扩展名则跳过
+          if (/\.[a-z]+$/.test(p)) return match;
+          // 计算绝对路径，判断是文件还是目录
+          const baseDir = path.dirname(fullPath);
+          const absPath = path.resolve(baseDir, p);
+          if (fs.existsSync(absPath + ".js")) {
+            return `${prefix}${p}.js${suffix}`;
+          } else if (fs.existsSync(path.join(absPath, "index.js"))) {
+            return `${prefix}${p}/index.js${suffix}`;
+          }
+          // 找不到时加 .js（兜底）
+          return `${prefix}${p}.js${suffix}`;
+        }
+      );
+      // 修复 eval("import.meta.url") → import.meta.url（ESM 中直接可用）
+      content = content.replace(/eval\(["']import\.meta\.url["']\)/g, "import.meta.url");
+      fs.writeFileSync(fullPath, content, "utf8");
+    }
+  }
+};
+
+fixEsmExtensions(distDir);
+
 if (!dual) {
   console.log("[build-pkg] 完成（ESM only）\n");
   process.exit(0);
@@ -49,7 +88,6 @@ run(
 console.log("\n[build-pkg] 重命名 .js → .cjs...");
 
 const cjsDir = path.join(cwd, "dist", "cjs");
-const distDir = path.join(cwd, "dist");
 
 const renameRecursive = (dir, relBase) => {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -65,11 +103,15 @@ const renameRecursive = (dir, relBase) => {
 
       // 修正 require() 内部的相对路径引用（.js → .cjs）
       let content = fs.readFileSync(fullPath, "utf8");
-      content = content.replace(/require\("(\.[^"]+)\.js"\)/g, 'require("$1.cjs")');
-      content = content.replace(/require\('(\.[^']+)\.js'\)/g, "require('$1.cjs')");
+      content = content.replace(/require\("(\.[\/\\][^"]+)\.js"\)/g, 'require("$1.cjs")');
+      content = content.replace(/require\('(\.[\/\\][^']+)\.js'\)/g, "require('$1.cjs')");
+      // 修复 CJS 中的 import.meta.url → 使用 __filename
+      content = content.replace(
+        /eval\(["']import\.meta\.url["']\)/g,
+        '"file://" + __filename.replace(/\\\\/g, "/")'
+      );
 
-      fs.writeFileSync(path.join(destDir, destName), content, "utf8");
-    }
+      fs.writeFileSync(path.join(destDir, destName), content, "utf8");    }
   }
 };
 
