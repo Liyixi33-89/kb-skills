@@ -1,6 +1,6 @@
-# @kb-skills/cli
+﻿# @kb-skills/cli
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/cli/README.md) | **中文**
 
 [kb-skills](https://github.com/Liyixi33-89/kb-skills) 命令行工具。
 

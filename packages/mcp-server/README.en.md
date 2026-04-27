@@ -1,6 +1,6 @@
 # @kb-skills/mcp-server
 
-[中文](./README.md) | **English**
+[中文](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/mcp-server/README.md) | **English**
 
 > Expose your kb-skills knowledge base to AI coding assistants via the **MCP (Model Context Protocol)**.  
 > Compatible with **Cursor / Claude Desktop / Windsurf / Copilot Chat** and any MCP-enabled tool.

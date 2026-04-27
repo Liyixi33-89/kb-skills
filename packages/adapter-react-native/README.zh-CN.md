@@ -1,6 +1,6 @@
-# @kb-skills/adapter-react-native
+﻿# @kb-skills/adapter-react-native
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-react-native/README.md) | **中文**
 
 > **React Native**（裸工作流）和 **Expo** 项目扫描适配器。
 

@@ -1,6 +1,6 @@
 # @kb-skills/mcp-server
 
-**中文** | [English](./README.en.md)
+**中文** | [English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/mcp-server/README.en.md)
 
 > 将 kb-skills 知识库通过 **MCP（Model Context Protocol）** 协议暴露给 AI 编码助手。  
 > 支持 **Cursor / Claude Desktop / Windsurf / Copilot Chat** 等任意 MCP 兼容工具。

@@ -1,6 +1,6 @@
-# @kb-skills/core
+﻿# @kb-skills/core
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/core/README.md) | **中文**
 
 [kb-skills](https://github.com/Liyixi33-89/kb-skills) 的框架无关核心原语：
 

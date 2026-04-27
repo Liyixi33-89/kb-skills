@@ -1,6 +1,6 @@
-# @kb-skills/adapter-react
+﻿# @kb-skills/adapter-react
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-react/README.md) | **中文**
 
 > **React 19 + Zustand** 前端扫描适配器，为 [`kb-skills`](https://github.com/Liyixi33-89/kb-skills) 提供支持。
 

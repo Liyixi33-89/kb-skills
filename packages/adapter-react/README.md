@@ -1,6 +1,6 @@
-# @kb-skills/adapter-react
+﻿# @kb-skills/adapter-react
 
-**English** | [中文](./README.zh-CN.md)
+**English** | [中文](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-react/README.zh-CN.md)
 
 > Scan adapter for **React 19 + Zustand** frontends, powering [`kb-skills`](https://github.com/Liyixi33-89/kb-skills).
 

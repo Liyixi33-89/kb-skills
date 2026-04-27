@@ -1,6 +1,6 @@
-# @kb-skills/adapter-express
+﻿# @kb-skills/adapter-express
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-express/README.md) | **中文**
 
 > **Express + Mongoose** 后端扫描适配器，为 [`kb-skills`](https://github.com/Liyixi33-89/kb-skills) 提供支持。
 

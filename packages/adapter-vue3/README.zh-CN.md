@@ -1,6 +1,6 @@
-# @kb-skills/adapter-vue3
+﻿# @kb-skills/adapter-vue3
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-vue3/README.md) | **中文**
 
 > **Vue 3 + Pinia** 前端扫描适配器，为 [`kb-skills`](https://github.com/Liyixi33-89/kb-skills) 提供支持。
 

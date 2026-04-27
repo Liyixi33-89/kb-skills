@@ -1,6 +1,6 @@
-# @kb-skills/adapter-nestjs
+﻿# @kb-skills/adapter-nestjs
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-nestjs/README.md) | **中文**
 
 > [kb-skills](https://github.com/your-org/kb-skills) 的 NestJS 扫描适配器。
 

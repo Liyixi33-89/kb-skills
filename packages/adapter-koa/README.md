@@ -1,6 +1,6 @@
-# @kb-skills/adapter-koa
+﻿# @kb-skills/adapter-koa
 
-**English** | [中文](./README.zh-CN.md)
+**English** | [中文](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-koa/README.zh-CN.md)
 
 > Scan adapter for **Koa + Mongoose** backends, powering [`kb-skills`](https://github.com/Liyixi33-89/kb-skills).
 

@@ -1,6 +1,6 @@
-# @kb-skills/adapter-react-native
+﻿# @kb-skills/adapter-react-native
 
-**English** | [中文](./README.zh-CN.md)
+**English** | [中文](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-react-native/README.zh-CN.md)
 
 > Scan adapter for **React Native** (bare workflow) and **Expo** projects.
 

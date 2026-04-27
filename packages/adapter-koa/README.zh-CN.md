@@ -1,6 +1,6 @@
-# @kb-skills/adapter-koa
+﻿# @kb-skills/adapter-koa
 
-[English](./README.md) | **中文**
+[English](https://github.com/Liyixi33-89/kb-skills/blob/main/packages/adapter-koa/README.md) | **中文**
 
 > **Koa + Mongoose** 后端扫描适配器，为 [`kb-skills`](https://github.com/Liyixi33-89/kb-skills) 提供支持。
 
