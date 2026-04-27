@@ -144,9 +144,10 @@ npx @kb-skills/mcp-server --config ./config/kb-skills.config.ts
 
 ---
 
-## Available MCP Tools (9 total)
+## Available MCP Tools (13 total)
 
-> **New in v1.1.0**: `search_semantic` (semantic search), incremental mode for `run_scan`, KB file YAML Front Matter metadata
+> **New in v1.1.0**: `search_semantic` (semantic search), incremental mode for `run_scan`, KB file YAML Front Matter metadata  
+> **New in v1.5.0**: `get_dependency_graph`, `find_cross_module_relations`, `execute_skill_workflow`, `analyze_change_impact` (OAG capabilities)
 
 ### `search_symbol` — Symbol Search
 
@@ -309,6 +310,68 @@ Parameters:
 > | Use case | Know the symbol name | Describe functional intent |
 > | Speed | Very fast | Fast (local vector computation) |
 > | Requires API | No | No |
+
+---
+
+### `get_dependency_graph` — Dependency Graph ✨ NEW in v1.5.0
+
+Query the dependency graph for a specified symbol, supporting upstream/downstream traversal and Mermaid diagram output. Ideal for answering questions like "What services will be affected if I modify UserModel?"
+
+```
+Parameters:
+  symbol     string   Target symbol name, e.g. UserService, UserModel
+  depth?     number   Traversal depth, default 2
+  direction? enum     upstream / downstream / both (default)
+  format?    enum     tree (default) / flat / mermaid
+```
+
+**Example**: "What services depend on UserModel?" → AI calls `get_dependency_graph({ symbol: "UserModel", direction: "upstream", format: "mermaid" })`
+
+---
+
+### `find_cross_module_relations` — Cross-Module Relations ✨ NEW in v1.5.0
+
+Query frontend-backend cross-module associations. Answers questions like "Which frontend pages call the /api/users endpoint?" or "What backend APIs does UserList.tsx call?"
+
+```
+Parameters:
+  apiRoute?      string   Backend route path, e.g. /api/users (fuzzy path param matching)
+  frontendFile?  string   Frontend file path (partial match), e.g. UserList.tsx
+  (at least one required)
+```
+
+**Example**: "Which frontend pages call /api/users?" → AI calls `find_cross_module_relations({ apiRoute: "/api/users" })`
+
+---
+
+### `execute_skill_workflow` — Skill Workflow ✨ NEW in v1.5.0
+
+Execute a Skill workflow that automatically orchestrates multiple Tool calls to complete complex tasks. Workflows are defined in the YAML Front Matter of SKILL.md files.
+
+```
+Parameters:
+  skill    string              Skill name, e.g. bug-fix, code-review
+  context? Record<string,any>  Initial context variables, e.g. { bugKeyword: "UserService" }
+  dryRun?  boolean             Return execution plan only, default false
+```
+
+**Example**: "Help me analyze a bug in UserService" → AI calls `execute_skill_workflow({ skill: "bug-fix", context: { bugKeyword: "UserService" } })`
+
+---
+
+### `analyze_change_impact` — Change Impact Analysis ✨ NEW in v1.5.0
+
+Analyze the impact scope of modifying a specified symbol, assess risk level (🟢 low / 🟡 medium / 🔴 high), and provide fix suggestions.
+
+```
+Parameters:
+  symbol        string   Symbol name to modify
+  changeType    enum     signature / behavior / delete / rename
+  newSignature? string   New signature (for changeType=signature)
+  newName?      string   New name (for changeType=rename)
+```
+
+**Example**: "I want to delete UserService.createUser, what will be affected?" → AI calls `analyze_change_impact({ symbol: "createUser", changeType: "delete" })`
 
 ---
 

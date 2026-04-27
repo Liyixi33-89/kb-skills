@@ -19,6 +19,11 @@ import { getSkill } from "./tools/get-skill.js";
 import { getKbStatus } from "./tools/get-kb-status.js";
 import { runScan } from "./tools/run-scan.js";
 import { searchSemantic, invalidateSemanticIndex } from "./tools/search-semantic.js";
+// 第二期 OAG Tools
+import { getDependencyGraph } from "./tools/get-dependency-graph.js";
+import { findCrossModuleRelations } from "./tools/find-cross-module-relations.js";
+import { executeWorkflow } from "./tools/execute-skill-workflow.js";
+import { analyzeChangeImpact } from "./tools/analyze-change-impact.js";
 
 // ─── MCP 响应格式化辅助 ───────────────────────────────────────────────────────
 
@@ -36,7 +41,7 @@ const toError = (message: string): { content: Array<{ type: "text"; text: string
 export const createKbSkillsServer = (ctx: McpContext): McpServer => {
   const server = new McpServer({
     name: "kb-skills",
-    version: "1.1.0",
+    version: "1.5.0",
   });
 
   const cache = new ScanCache(ctx);
@@ -247,6 +252,128 @@ export const createKbSkillsServer = (ctx: McpContext): McpServer => {
         return toText(result);
       } catch (err) {
         return toError(`search_semantic 失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+  );
+
+  // ── Tool 10: get_dependency_graph ──────────────────────────────────────────
+  server.tool(
+    "get_dependency_graph",
+    "查询指定符号的依赖图谱。返回该符号的上游调用者（谁依赖它）和下游依赖（它依赖谁），支持 tree/flat/mermaid 三种输出格式。适合回答「修改 UserModel 会影响哪些服务？」类问题。",
+    {
+      symbol: z
+        .string()
+        .describe("目标符号名称，如 UserService、UserModel、AuthController"),
+      depth: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .optional()
+        .default(2)
+        .describe("遍历深度，默认 2（直接依赖 + 间接依赖）"),
+      direction: z
+        .enum(["upstream", "downstream", "both"])
+        .optional()
+        .default("both")
+        .describe("遍历方向：upstream（上游调用者）、downstream（下游依赖）、both（双向，默认）"),
+      format: z
+        .enum(["tree", "flat", "mermaid"])
+        .optional()
+        .default("tree")
+        .describe("输出格式：tree（树状，默认）、flat（扁平列表）、mermaid（流程图语法）"),
+    },
+    async (input) => {
+      try {
+        const result = await getDependencyGraph(cache, input);
+        return toText(result);
+      } catch (err) {
+        return toError(`get_dependency_graph 失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+  );
+
+  // ── Tool 11: find_cross_module_relations ───────────────────────────────────
+  server.tool(
+    "find_cross_module_relations",
+    "查询前后端跨模块关联。可以回答「后端 /api/users 接口被哪些前端页面调用？」或「UserList.tsx 调用了哪些后端接口？」。至少提供 apiRoute 或 frontendFile 其中一个参数。",
+    {
+      apiRoute: z
+        .string()
+        .optional()
+        .describe("后端路由路径，如 /api/users 或 /api/users/:id，支持路径参数模糊匹配"),
+      frontendFile: z
+        .string()
+        .optional()
+        .describe("前端文件路径（部分匹配），如 UserList.tsx 或 pages/user"),
+    },
+    async (input) => {
+      try {
+        const result = await findCrossModuleRelations(cache, input);
+        return toText(result);
+      } catch (err) {
+        return toError(`find_cross_module_relations 失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+  );
+
+  // ── Tool 12: execute_skill_workflow ────────────────────────────────────────
+  server.tool(
+    "execute_skill_workflow",
+    "执行 Skill 工作流。Skill 工作流是定义在 SKILL.md 中的多步骤推理流程，可自动编排多个 Tool 调用。使用 dryRun=true 可预览执行计划而不实际执行。",
+    {
+      skill: z
+        .string()
+        .describe("Skill 名称，如 bug-fix、code-review、gen-backend-code"),
+      context: z
+        .record(z.unknown())
+        .optional()
+        .default({})
+        .describe("初始上下文变量，供工作流步骤中的模板变量使用，如 { bugKeyword: 'UserService' }"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("只返回执行计划，不实际执行 Tool 步骤，默认 false"),
+    },
+    async (input) => {
+      try {
+        const result = await executeWorkflow(cache, input);
+        return toText(result);
+      } catch (err) {
+        return toError(`execute_skill_workflow 失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+  );
+
+  // ── Tool 13: analyze_change_impact ────────────────────────────────────────
+  server.tool(
+    "analyze_change_impact",
+    "分析修改指定符号对整个项目的影响范围。基于依赖图谱找出所有受影响的文件，评估风险等级（low/medium/high），并给出修复建议。适合在修改代码前进行影响评估。",
+    {
+      symbol: z
+        .string()
+        .describe("要修改的符号名称，如 UserService、createUser、UserModel"),
+      changeType: z
+        .enum(["signature", "behavior", "delete", "rename"])
+        .describe(
+          "变更类型：signature（函数签名变更）、behavior（行为变更）、delete（删除）、rename（重命名）",
+        ),
+      newSignature: z
+        .string()
+        .optional()
+        .describe("新签名（changeType=signature 时提供），如 createUser(data: CreateUserDto): Promise<User>"),
+      newName: z
+        .string()
+        .optional()
+        .describe("新名称（changeType=rename 时提供）"),
+    },
+    async (input) => {
+      try {
+        const result = await analyzeChangeImpact(cache, input);
+        return toText(result);
+      } catch (err) {
+        return toError(`analyze_change_impact 失败: ${err instanceof Error ? err.message : String(err)}`);
       }
     },
   );

@@ -9,6 +9,42 @@ triggers:
   - 生成 Model
   - 生成 Service
   - 后端开发
+workflow:
+  steps:
+    - id: get_overview
+      type: tool
+      tool: get_module_map
+      description: 获取项目模块全景，了解现有代码结构
+      params: {}
+    - id: find_similar
+      type: tool
+      tool: search_semantic
+      description: 查找相似的现有实现作为参考
+      params:
+        query: "{{featureName}} service model api"
+        topK: 5
+    - id: check_deps
+      type: tool
+      tool: get_dependency_graph
+      description: 检查相关符号的依赖关系
+      params:
+        symbol: "{{relatedSymbol}}"
+        direction: both
+        depth: 2
+        format: flat
+    - id: generate
+      type: llm_prompt
+      description: 生成符合项目规范的后端代码
+      template: |
+        基于以下项目信息，生成 {{featureName}} 的后端代码：
+        1. 项目模块结构：{{get_overview.result}}
+        2. 相似实现参考：{{find_similar.result}}
+        3. 相关依赖关系：{{check_deps.result}}
+        请生成：
+        - Model 定义（Mongoose Schema + TypeScript Interface）
+        - Service 层（业务逻辑，遵循现有 Service 模式）
+        - Route 层（API 端点，遵循现有路由风格）
+        - 确保与现有代码风格一致，不引入新的依赖
 ---
 
 # Gen-Backend-Code — 后端代码生成

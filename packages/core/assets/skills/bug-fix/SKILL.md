@@ -10,6 +10,44 @@ triggers:
   - 报错
   - 异常
   - 问题排查
+workflow:
+  steps:
+    - id: locate
+      type: tool
+      tool: search_symbol
+      description: 根据 bug 关键词定位相关符号
+      params:
+        query: "{{bugKeyword}}"
+        limit: 10
+    - id: dependency
+      type: tool
+      tool: get_dependency_graph
+      description: 分析定位到的符号的依赖关系
+      params:
+        symbol: "{{bugKeyword}}"
+        direction: upstream
+        depth: 2
+        format: flat
+    - id: impact
+      type: tool
+      tool: analyze_change_impact
+      description: 评估修复影响范围
+      params:
+        symbol: "{{bugKeyword}}"
+        changeType: behavior
+    - id: suggest
+      type: llm_prompt
+      description: 基于以上分析生成修复建议
+      template: |
+        基于以下分析结果，给出 Bug 修复建议：
+        1. 定位到的相关符号：{{locate.result}}
+        2. 依赖关系分析：{{dependency.result}}
+        3. 影响范围评估：{{impact.result}}
+        请给出：
+        - 根因分析
+        - 修复方案（最小改动原则）
+        - 需要同步修改的文件列表
+        - 验证步骤
 ---
 
 # Bug-Fix — Bug 修复

@@ -144,9 +144,10 @@ npx @kb-skills/mcp-server --config ./config/kb-skills.config.ts
 
 ---
 
-## 可用 MCP Tools（9 个）
+## 可用 MCP Tools（13 个）
 
-> **v1.1.0 新增**：`search_semantic`（语义搜索）、`run_scan` 支持增量模式、KB 文件 YAML Front Matter 元数据
+> **v1.1.0 新增**：`search_semantic`（语义搜索）、`run_scan` 支持增量模式、KB 文件 YAML Front Matter 元数据  
+> **v1.5.0 新增**：`get_dependency_graph`、`find_cross_module_relations`、`execute_skill_workflow`、`analyze_change_impact`（OAG 能力）
 
 AI 工具连接后可以调用以下 Tools：
 
@@ -311,6 +312,85 @@ AI 工具连接后可以调用以下 Tools：
 > | 适用场景 | 知道符号名称 | 描述功能意图 |
 > | 速度 | 极快 | 快（本地向量计算） |
 > | 需要 API | 否 | 否 |
+
+---
+
+### `get_dependency_graph` — 依赖图谱 ✨ NEW in v1.5.0
+
+查询指定符号的依赖图谱，支持上下游遍历和 Mermaid 流程图输出。适合回答「修改 UserModel 会影响哪些服务？」类问题。
+
+```
+参数：
+  symbol     string   目标符号名称，如 UserService、UserModel
+  depth?     number   遍历深度，默认 2
+  direction? enum     upstream（上游）/ downstream（下游）/ both（双向，默认）
+  format?    enum     tree（树状，默认）/ flat（扁平列表）/ mermaid（流程图）
+```
+
+**示例提问**：`修改 UserModel 会影响哪些服务？` → AI 调用 `get_dependency_graph({ symbol: "UserModel", direction: "upstream", format: "mermaid" })`
+
+---
+
+### `find_cross_module_relations` — 跨模块关联 ✨ NEW in v1.5.0
+
+查询前后端跨模块关联。可以回答「后端 /api/users 接口被哪些前端页面调用？」或「UserList.tsx 调用了哪些后端接口？」。
+
+```
+参数：
+  apiRoute?      string   后端路由路径，如 /api/users（支持路径参数模糊匹配）
+  frontendFile?  string   前端文件路径（部分匹配），如 UserList.tsx
+  （至少提供一个）
+```
+
+**示例提问**：`/api/users 被哪些前端页面调用？` → AI 调用 `find_cross_module_relations({ apiRoute: "/api/users" })`
+
+---
+
+### `execute_skill_workflow` — Skill 工作流 ✨ NEW in v1.5.0
+
+执行 Skill 工作流，自动编排多个 Tool 调用完成复杂任务。工作流定义在 SKILL.md 的 YAML Front Matter 中。
+
+```
+参数：
+  skill    string              Skill 名称，如 bug-fix、code-review
+  context? Record<string,any>  初始上下文变量，如 { bugKeyword: "UserService" }
+  dryRun?  boolean             只返回执行计划，不实际执行，默认 false
+```
+
+**示例提问**：`帮我分析 UserService 的 Bug` → AI 调用 `execute_skill_workflow({ skill: "bug-fix", context: { bugKeyword: "UserService" } })`
+
+---
+
+### `analyze_change_impact` — 变更影响分析 ✨ NEW in v1.5.0
+
+分析修改指定符号对整个项目的影响范围，评估风险等级（🟢 low / 🟡 medium / 🔴 high），给出修复建议。
+
+```
+参数：
+  symbol        string   要修改的符号名称
+  changeType    enum     signature（签名变更）/ behavior（行为变更）/ delete（删除）/ rename（重命名）
+  newSignature? string   新签名（changeType=signature 时提供）
+  newName?      string   新名称（changeType=rename 时提供）
+```
+
+**示例提问**：`我要删除 UserService.createUser，会影响哪些地方？` → AI 调用 `analyze_change_impact({ symbol: "createUser", changeType: "delete" })`
+
+**返回示例**：
+```json
+{
+  "targetSymbol": "createUser",
+  "changeType": "delete",
+  "riskLevel": "high",
+  "impactedCount": 5,
+  "summary": "🔴 createUser 的 delete 变更影响 5 个符号，风险等级：HIGH",
+  "suggestions": [
+    "删除 createUser 前，需要先处理 3 个直接调用者",
+    "直接调用者：UserController、AuthService、AdminService",
+    "建议先将该符号标记为 @deprecated，给调用方迁移时间"
+  ],
+  "impactedFiles": [...]
+}
+```
 
 ---
 

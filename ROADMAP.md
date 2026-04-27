@@ -1,7 +1,7 @@
 # kb-skills 升级路线图（RAG → RAG + OAG）
 
-> **文档版本**：v1.1.0 · 更新时间：2026-04-27  
-> **当前版本**：`@kb-skills/core@0.4.0` · `@kb-skills/mcp-server@1.1.0`  
+> **文档版本**：v1.5.0 · 更新时间：2026-04-27  
+> **当前版本**：`@kb-skills/core@1.5.0` · `@kb-skills/mcp-server@1.5.0`  
 > **目标版本**：`v2.0.0`（三期迭代完成后发布）
 
 ---
@@ -181,9 +181,9 @@ MCP Server 已注册 **8 个 Tools**：
 
 ---
 
-## 第二期：引入 OAG 能力（预计 3 周）
+## 第二期：引入 OAG 能力 ✅ 已完成（v1.5.0）
 
-> **里程碑**：`v1.5.0`  
+> **里程碑**：`v1.5.0` · **发布时间**：2026-04-27  
 > **核心目标**：让 AI 从"被动读文档"升级为"主动分析依赖、编排多步骤推理"
 
 ### Task 2.1：符号依赖图谱 Tool（`get_dependency_graph`）
@@ -357,16 +357,16 @@ MCP Server 已注册 **8 个 Tools**：
 
 ---
 
-### 第二期交付物
+### 第二期交付物 ✅
 
-| 交付物 | 说明 |
-|--------|------|
-| `packages/core@1.5.0` | 新增依赖图谱、跨模块分析、Skill 工作流引擎 |
-| `packages/mcp-server@1.5.0` | 新增 4 个 Tool（共 13 个） |
-| `packages/adapter-react@1.5.0` | 扩展 API 调用提取 |
-| `packages/adapter-vue3@1.5.0` | 扩展 API 调用提取 |
-| 单元测试覆盖率 | 新增代码 > 75% |
-| 文档更新 | 所有新 Tool 的 README 说明 |
+| 交付物 | 说明 | 状态 |
+|--------|------|------|
+| `packages/core@1.5.0` | 新增依赖图谱、跨模块分析、Skill 工作流引擎 | ✅ 已完成 |
+| `packages/mcp-server@1.5.0` | 新增 4 个 Tool（共 13 个） | ✅ 已完成 |
+| `packages/adapter-react` | 扩展 API 调用提取（extras.apiUrls） | ✅ 已完成 |
+| `packages/adapter-vue3` | 扩展 API 调用提取（extras.apiUrls） | ✅ 已完成 |
+| Skills workflow | bug-fix / code-review / gen-backend-code 添加 workflow 定义 | ✅ 已完成 |
+| 文档更新 | ROADMAP.md 更新，README 更新新 Tool 说明 | ✅ 已完成 |
 
 ---
 

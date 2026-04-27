@@ -1,6 +1,6 @@
 {
   "name": "@kb-skills/mcp-server",
-  "version": "1.1.0",
+  "version": "1.5.0",
   "description": "MCP Server for kb-skills — exposes project KB to AI coding assistants (Cursor, Claude Desktop, Windsurf)",
   "license": "MIT",
   "type": "module",

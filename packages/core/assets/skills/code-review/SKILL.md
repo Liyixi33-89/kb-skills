@@ -8,6 +8,46 @@ triggers:
   - 审查代码
   - review code
   - 代码检查
+workflow:
+  steps:
+    - id: scan_symbol
+      type: tool
+      tool: search_symbol
+      description: 查找被审查的符号信息
+      params:
+        query: "{{targetSymbol}}"
+        limit: 5
+    - id: check_deps
+      type: tool
+      tool: get_dependency_graph
+      description: 检查依赖关系是否合理
+      params:
+        symbol: "{{targetSymbol}}"
+        direction: both
+        depth: 2
+        format: flat
+    - id: check_impact
+      type: tool
+      tool: analyze_change_impact
+      description: 评估变更影响范围
+      params:
+        symbol: "{{targetSymbol}}"
+        changeType: behavior
+    - id: review_report
+      type: llm_prompt
+      description: 生成代码审查报告
+      template: |
+        基于以下项目信息，对 {{targetSymbol}} 进行代码审查：
+        1. 符号信息：{{scan_symbol.result}}
+        2. 依赖关系：{{check_deps.result}}
+        3. 影响范围：{{check_impact.result}}
+        请从以下维度审查并输出报告：
+        - 类型安全（TypeScript 类型是否完整）
+        - 错误处理（是否有遗漏的异常处理）
+        - 依赖关系（是否存在循环依赖或过度耦合）
+        - 命名规范（是否符合项目约定）
+        - 影响评估（变更是否可能引入回归）
+        输出格式：问题列表（严重/中等/建议）+ 综合评分（0-10）
 ---
 
 # Code-Review — 代码审查

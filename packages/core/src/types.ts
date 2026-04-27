@@ -558,12 +558,131 @@ export interface ModuleInfo {
   raw?: ScanRaw;
 }
 
-export type RelationKind = "calls" | "renders" | "imports" | "routes-to";
+export type RelationKind =
+  | "calls"
+  | "renders"
+  | "imports"
+  | "routes-to"
+  | "depends-on"
+  | "extends"
+  | "implements";
 
 export interface Relation {
   from: string;
   to: string;
   kind: RelationKind;
+  /** 源文件相对路径 */
+  fromFile?: string;
+  /** 目标文件相对路径 */
+  toFile?: string;
+  /** 所属模块 */
+  module?: string;
+}
+
+// ─── 依赖图谱节点（第二期 OAG）────────────────────────────────────────────────
+
+/**
+ * 依赖图谱中的节点，表示一个符号及其依赖关系
+ */
+export interface DependencyNode {
+  /** 符号名称 */
+  symbol: string;
+  /** 符号类型 */
+  kind: SymbolKind;
+  /** 源文件相对路径 */
+  file: string;
+  /** 所属模块 */
+  module: string;
+  /** 下游依赖（该符号依赖的其他符号） */
+  children: DependencyNode[];
+  /** 上游调用者（依赖该符号的其他符号） */
+  parents: DependencyNode[];
+}
+
+// ─── 跨模块关联（第二期 OAG）─────────────────────────────────────────────────
+
+/**
+ * 前端调用后端 API 的关联信息
+ */
+export interface CrossModuleRelation {
+  /** 后端路由路径，如 /api/users */
+  backendRoute: string;
+  /** 后端路由所在文件 */
+  backendFile: string;
+  /** 后端模块名 */
+  backendModule: string;
+  /** 调用该接口的前端文件列表 */
+  frontendCallers: Array<{
+    /** 前端文件相对路径 */
+    file: string;
+    /** 组件/页面名称 */
+    component: string;
+    /** API 调用表达式，如 api.getUsers() */
+    apiCall: string;
+    /** 前端模块名 */
+    module: string;
+  }>;
+}
+
+// ─── Skill 工作流（第二期 OAG）───────────────────────────────────────────────
+
+/**
+ * Skill 工作流步骤类型
+ */
+export type WorkflowStepType = "tool" | "llm_prompt" | "condition";
+
+/**
+ * Skill 工作流步骤定义
+ */
+export interface WorkflowStep {
+  /** 步骤 ID，用于上下文变量引用 */
+  id: string;
+  /** 步骤类型 */
+  type: WorkflowStepType;
+  /** 调用的 MCP Tool 名称（type=tool 时） */
+  tool?: string;
+  /** Tool 参数（支持 {{stepId.result}} 模板变量） */
+  params?: Record<string, unknown>;
+  /** LLM 提示词模板（type=llm_prompt 时） */
+  template?: string;
+  /** 步骤描述 */
+  description?: string;
+}
+
+/**
+ * Skill 工作流定义（存储在 SKILL.md 的 YAML Front Matter 中）
+ */
+export interface SkillWorkflow {
+  steps: WorkflowStep[];
+}
+
+/**
+ * Skill 工作流执行结果（单步）
+ */
+export interface WorkflowStepResult {
+  stepId: string;
+  type: WorkflowStepType;
+  /** 执行成功 */
+  success: boolean;
+  /** 步骤输出结果 */
+  result?: unknown;
+  /** 错误信息 */
+  error?: string;
+  /** 执行耗时（ms） */
+  durationMs: number;
+}
+
+/**
+ * Skill 工作流完整执行结果
+ */
+export interface SkillWorkflowResult {
+  skill: string;
+  success: boolean;
+  steps: WorkflowStepResult[];
+  /** 最终输出（最后一步的 result） */
+  output?: unknown;
+  /** 总耗时（ms） */
+  totalDurationMs: number;
 }
 
 export interface ScanResult {
