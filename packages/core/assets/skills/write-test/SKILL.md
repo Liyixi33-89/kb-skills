@@ -39,24 +39,7 @@ workflow:
     - id: suggest
       type: llm_prompt
       description: 生成精准测试代码
-      template: |
-        为 "{{targetSymbol}}" 生成精准测试用例：
-
-        1. 符号信息（类型/文件/导出）：{{symbol_info.result}}
-        2. 下游依赖（需要 Mock 的模块）：{{downstream.result}}
-        3. 上游调用者（集成测试场景来源）：{{upstream.result}}
-
-        测试策略：
-        - 下游依赖列表中的每个模块都需要 Mock
-        - 上游调用者决定了该符号被如何使用，据此设计测试场景
-        - 覆盖：正常路径、异常路径、边界条件
-
-        请生成：
-        - 完整可运行的测试文件（含所有 import 和 Mock 配置）
-        - 每个测试用例用中文描述测试意图
-        - Mock 数据要真实合理（不用空对象）
-        - 断言要具体（不只是 toBeTruthy）
----
+      template: "为 {{targetSymbol}} 生成精准测试用例：符号信息={{symbol_info.result}}，下游依赖(Mock清单)={{downstream.result}}，上游调用者(测试场景)={{upstream.result}}。请生成完整可运行的测试文件，包含所有import和Mock配置，每个测试用中文描述意图，Mock数据要真实合理，断言要具体"---
 
 # Write-Test — 基于依赖图谱的精准测试生成
 

@@ -38,18 +38,7 @@ workflow:
     - id: generate
       type: llm_prompt
       description: 基于依赖分析生成测试用例
-      template: |
-        基于以下分析，为 "{{targetSymbol}}" 生成全面的测试用例：
-
-        1. 符号信息：{{symbol_info.result}}
-        2. 下游依赖（需要 Mock 的项）：{{dependency.result}}
-        3. 影响范围（集成测试范围）：{{impact.result}}
-
-        请生成：
-        - 单元测试：正常场景、异常场景、边界条件
-        - 集成测试：基于影响范围中的上游调用者
-        - Mock 策略：基于下游依赖图谱确定需要 Mock 的模块
-        - 验收标准覆盖矩阵
+      template: "为 {{targetSymbol}} 生成全面测试用例：符号信息={{symbol_info.result}}，下游依赖(Mock清单)={{dependency.result}}，影响范围={{impact.result}}。请生成单元测试(正常/异常/边界)、集成测试、Mock策略和验收标准覆盖矩阵"
 ---
 
 # Gen-Test-Code — 测试用例生成

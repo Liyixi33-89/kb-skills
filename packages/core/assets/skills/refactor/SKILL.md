@@ -37,19 +37,7 @@ workflow:
     - id: plan
       type: llm_prompt
       description: 基于依赖分析制定安全的重构方案
-      template: |
-        基于以下分析，制定 "{{targetSymbol}}" 的重构方案：
-
-        1. 符号信息：{{symbol_info.result}}
-        2. 依赖图谱（上下游）：{{dependency.result}}
-        3. 影响范围评估：{{impact.result}}
-
-        请输出：
-        - Code Smell 分析（具体问题点）
-        - 重构方案（按风险由低到高排序）
-        - 每个步骤的影响范围（基于依赖图谱）
-        - 需要同步修改的上游调用者列表
-        - 验证方案（重构后如何确认功能不变）
+      template: "制定 {{targetSymbol}} 的重构方案：符号信息={{symbol_info.result}}，依赖图谱(上下游)={{dependency.result}}，影响范围={{impact.result}}。请输出Code Smell分析、重构方案(按风险由低到高)、每步影响范围、需要同步修改的上游调用者列表和验证方案"
 ---
 
 # Refactor — 代码重构

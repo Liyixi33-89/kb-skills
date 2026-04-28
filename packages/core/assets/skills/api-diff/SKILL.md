@@ -34,22 +34,7 @@ workflow:
     - id: sync_plan
       type: llm_prompt
       description: 生成前端同步修改方案
-      template: |
-        后端接口 "{{apiRoute}}" 发生了变更，请生成前端同步修改方案：
-
-        变更类型：{{changeType}}
-        变更描述：{{changeDesc}}
-
-        1. 接口当前定义：{{route_detail.result}}
-        2. 前端调用点列表：{{callers.result}}
-        3. 影响范围评估：{{impact.result}}
-
-        请输出：
-        - 受影响的前端文件清单（含具体行号/函数名）
-        - 每个文件需要修改的内容（before/after 对比）
-        - TypeScript 类型定义需要同步的变更
-        - 修改优先级（按影响严重程度排序）
-        - 验证步骤（如何确认前后端已对齐）
+      template: "接口 {{apiRoute}} 发生了 {{changeType}} 变更：{{changeDesc}}。接口定义={{route_detail.result}}，前端调用点={{callers.result}}，影响评估={{impact.result}}。请生成前端同步修改方案：受影响文件清单(含具体行号/函数名)、每个文件的before/after对比、TypeScript类型变更清单、修改优先级和验证步骤"
 ---
 
 # API-Diff — 接口变更影响分析

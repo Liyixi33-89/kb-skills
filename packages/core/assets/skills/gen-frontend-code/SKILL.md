@@ -33,19 +33,7 @@ workflow:
     - id: generate
       type: llm_prompt
       description: 基于以上信息生成前端代码
-      template: |
-        基于以下项目信息，生成符合项目规范的前端代码：
-
-        1. 项目模块结构：{{module_map.result}}
-        2. 前后端关联关系：{{cross_relations.result}}
-        3. 现有相似代码模式：{{existing_pattern.result}}
-
-        生成目标：{{featureDesc}}
-        请严格按照现有代码模式生成，确保：
-        - 与现有组件风格一致
-        - API 调用路径与后端路由匹配
-        - TypeScript 类型完整
-        - 包含加载/空/错误状态处理
+      template: "基于项目模块结构({{module_map.result}})、前后端关联({{cross_relations.result}})、现有代码模式({{existing_pattern.result}})，生成 {{featureDesc}} 的前端代码，确保与现有组件风格一致、API路径与后端路由匹配、TypeScript类型完整、包含加载/空/错误状态处理"
 ---
 
 # Gen-Frontend-Code — 前端代码生成
