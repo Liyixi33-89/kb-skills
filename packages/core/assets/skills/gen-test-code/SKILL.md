@@ -10,6 +10,46 @@ triggers:
   - 组件测试
   - API 测试
   - 写测试
+workflow:
+  steps:
+    - id: symbol_info
+      type: tool
+      tool: search_symbol
+      description: 查找目标符号的完整信息（类型、文件、导出）
+      params:
+        query: "{{targetSymbol}}"
+        limit: 5
+    - id: dependency
+      type: tool
+      tool: get_dependency_graph
+      description: 获取目标符号的依赖图谱，确定需要 Mock 的依赖项
+      params:
+        symbol: "{{targetSymbol}}"
+        direction: downstream
+        depth: 2
+        format: flat
+    - id: impact
+      type: tool
+      tool: analyze_change_impact
+      description: 分析该符号的影响范围，确定集成测试范围
+      params:
+        symbol: "{{targetSymbol}}"
+        changeType: behavior
+    - id: generate
+      type: llm_prompt
+      description: 基于依赖分析生成测试用例
+      template: |
+        基于以下分析，为 "{{targetSymbol}}" 生成全面的测试用例：
+
+        1. 符号信息：{{symbol_info.result}}
+        2. 下游依赖（需要 Mock 的项）：{{dependency.result}}
+        3. 影响范围（集成测试范围）：{{impact.result}}
+
+        请生成：
+        - 单元测试：正常场景、异常场景、边界条件
+        - 集成测试：基于影响范围中的上游调用者
+        - Mock 策略：基于下游依赖图谱确定需要 Mock 的模块
+        - 验收标准覆盖矩阵
 ---
 
 # Gen-Test-Code — 测试用例生成

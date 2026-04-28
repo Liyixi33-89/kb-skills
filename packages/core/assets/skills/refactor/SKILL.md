@@ -9,6 +9,47 @@ triggers:
   - 代码整理
   - 拆分组件
   - 提取函数
+workflow:
+  steps:
+    - id: symbol_info
+      type: tool
+      tool: search_symbol
+      description: 查找目标符号的完整信息
+      params:
+        query: "{{targetSymbol}}"
+        limit: 5
+    - id: dependency
+      type: tool
+      tool: get_dependency_graph
+      description: 获取目标符号的完整依赖图谱，了解重构影响范围
+      params:
+        symbol: "{{targetSymbol}}"
+        direction: both
+        depth: 2
+        format: tree
+    - id: impact
+      type: tool
+      tool: analyze_change_impact
+      description: 重构前先评估影响范围和风险等级
+      params:
+        symbol: "{{targetSymbol}}"
+        changeType: signature
+    - id: plan
+      type: llm_prompt
+      description: 基于依赖分析制定安全的重构方案
+      template: |
+        基于以下分析，制定 "{{targetSymbol}}" 的重构方案：
+
+        1. 符号信息：{{symbol_info.result}}
+        2. 依赖图谱（上下游）：{{dependency.result}}
+        3. 影响范围评估：{{impact.result}}
+
+        请输出：
+        - Code Smell 分析（具体问题点）
+        - 重构方案（按风险由低到高排序）
+        - 每个步骤的影响范围（基于依赖图谱）
+        - 需要同步修改的上游调用者列表
+        - 验证方案（重构后如何确认功能不变）
 ---
 
 # Refactor — 代码重构

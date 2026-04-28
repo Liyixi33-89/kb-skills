@@ -8,6 +8,44 @@ triggers:
   - 生成页面
   - 生成组件
   - 前端开发
+workflow:
+  steps:
+    - id: module_map
+      type: tool
+      tool: get_module_map
+      description: 获取项目模块全景，了解前后端模块结构
+      params:
+        module: web
+    - id: cross_relations
+      type: tool
+      tool: find_cross_module_relations
+      description: 查找与目标功能相关的前后端跨模块关联（后端路由 ↔ 前端调用）
+      params:
+        apiRoute: "{{apiRoute}}"
+    - id: existing_pattern
+      type: tool
+      tool: search_semantic
+      description: 搜索项目中已有的相似页面/组件模式，作为代码生成参考
+      params:
+        query: "{{featureDesc}} 页面 组件 API"
+        module: web
+        topK: 5
+    - id: generate
+      type: llm_prompt
+      description: 基于以上信息生成前端代码
+      template: |
+        基于以下项目信息，生成符合项目规范的前端代码：
+
+        1. 项目模块结构：{{module_map.result}}
+        2. 前后端关联关系：{{cross_relations.result}}
+        3. 现有相似代码模式：{{existing_pattern.result}}
+
+        生成目标：{{featureDesc}}
+        请严格按照现有代码模式生成，确保：
+        - 与现有组件风格一致
+        - API 调用路径与后端路由匹配
+        - TypeScript 类型完整
+        - 包含加载/空/错误状态处理
 ---
 
 # Gen-Frontend-Code — 前端代码生成
