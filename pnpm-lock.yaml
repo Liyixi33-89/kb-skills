@@ -41,6 +41,9 @@ importers:
 
   examples/fullstack-koa-react:
     dependencies:
+      '@kb-skills/adapter-git-log':
+        specifier: workspace:*
+        version: link:../../packages/adapter-git-log
       '@kb-skills/adapter-koa':
         specifier: workspace:*
         version: link:../../packages/adapter-koa

@@ -17,7 +17,8 @@
     "@kb-skills/core": "workspace:*",
     "@kb-skills/adapter-koa": "workspace:*",
     "@kb-skills/adapter-react": "workspace:*",
-    "@kb-skills/adapter-openapi": "^1.0.0"
+    "@kb-skills/adapter-openapi": "^1.0.0",
+    "@kb-skills/adapter-git-log": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.0"
