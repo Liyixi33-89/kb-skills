@@ -1,0 +1,51 @@
+{
+  "name": "@kb-skills/adapter-openapi",
+  "version": "1.0.0",
+  "description": "OpenAPI / Swagger spec adapter for kb-skills. Parses openapi.json / swagger.yaml and injects full API contract (request body, response schema, parameters) into the KB.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-pkg.mjs --dual",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch --target node18 --tsconfig ./tsconfig.build.json",
+    "typecheck": "tsc -b --pretty"
+  },
+  "peerDependencies": {
+    "@kb-skills/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@kb-skills/core": "workspace:*",
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "kb-skills",
+    "adapter",
+    "openapi",
+    "swagger",
+    "api-contract",
+    "node"
+  ]
+}
