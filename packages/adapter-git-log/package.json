@@ -1,0 +1,52 @@
+{
+  "name": "@kb-skills/adapter-git-log",
+  "version": "1.0.0",
+  "description": "Git history adapter for kb-skills. Extracts commit frequency, hot files, recent changes and contributor stats to give AI a historical dimension for change-impact analysis.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-pkg.mjs --dual",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch --target node18 --tsconfig ./tsconfig.build.json",
+    "typecheck": "tsc -b --pretty"
+  },
+  "peerDependencies": {
+    "@kb-skills/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@kb-skills/core": "workspace:*",
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "kb-skills",
+    "adapter",
+    "git",
+    "git-log",
+    "history",
+    "hot-files",
+    "change-frequency"
+  ]
+}
