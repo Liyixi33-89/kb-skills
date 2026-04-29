@@ -1,0 +1,211 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Fullstack Koa-React API",
+    "version": "1.0.0",
+    "description": "用户管理接口 — Koa + Mongoose 后端"
+  },
+  "servers": [
+    { "url": "http://localhost:3001", "description": "本地开发服务器" }
+  ],
+  "tags": [
+    { "name": "users", "description": "用户管理" }
+  ],
+  "paths": {
+    "/users": {
+      "get": {
+        "operationId": "listUsers",
+        "summary": "获取用户列表",
+        "tags": ["users"],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/User" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "summary": "创建用户",
+        "tags": ["users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "用户 MongoDB ObjectId",
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "operationId": "getUserById",
+        "summary": "获取单个用户",
+        "tags": ["users"],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "用户不存在",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateUser",
+        "summary": "更新用户",
+        "tags": ["users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUserDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "用户不存在",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteUser",
+        "summary": "删除用户",
+        "tags": ["users"],
+        "responses": {
+          "204": { "description": "删除成功" },
+          "404": {
+            "description": "用户不存在",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "description": "用户实体（Mongoose User model）",
+        "required": ["name", "email"],
+        "properties": {
+          "_id": { "type": "string", "description": "MongoDB ObjectId" },
+          "name": { "type": "string", "description": "用户名" },
+          "email": { "type": "string", "format": "email", "description": "邮箱（唯一）" },
+          "role": {
+            "type": "string",
+            "enum": ["admin", "user"],
+            "default": "user",
+            "description": "用户角色"
+          },
+          "createdAt": { "type": "string", "format": "date-time", "description": "创建时间" }
+        }
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "description": "创建用户请求体",
+        "required": ["name", "email"],
+        "properties": {
+          "name": { "type": "string", "description": "用户名" },
+          "email": { "type": "string", "format": "email", "description": "邮箱" },
+          "role": {
+            "type": "string",
+            "enum": ["admin", "user"],
+            "default": "user",
+            "description": "用户角色（可选，默认 user）"
+          }
+        }
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "description": "更新用户请求体（所有字段可选）",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["admin", "user"] }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "description": "错误信息" }
+        }
+      }
+    }
+  }
+}
