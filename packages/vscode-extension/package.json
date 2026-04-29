@@ -145,7 +145,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@kb-skills/core": "^0.3.3",
+    "@kb-skills/core": "^1.5.0",
     "@kb-skills/adapter-koa": "^2.0.1",
     "@kb-skills/adapter-express": "^2.0.1",
     "@kb-skills/adapter-nestjs": "^1.0.1",
@@ -153,6 +153,8 @@
     "@kb-skills/adapter-react-native": "^1.1.0",
     "@kb-skills/adapter-vue2": "^1.0.1",
     "@kb-skills/adapter-vue3": "^2.1.0",
+    "@kb-skills/adapter-openapi": "^1.0.0",
+    "@kb-skills/adapter-git-log": "^1.0.0",
     "jiti": "^2.4.2"
   }
 }

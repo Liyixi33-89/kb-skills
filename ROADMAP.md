@@ -1,7 +1,8 @@
 # kb-skills 升级路线图（RAG → RAG + OAG）
 
-> **文档版本**：v1.5.0 · 更新时间：2026-04-27  
+> **文档版本**：v1.5.0+ · 更新时间：2026-04-29  
 > **当前版本**：`@kb-skills/core@1.5.0` · `@kb-skills/mcp-server@1.5.0`  
+> **新增包**：`@kb-skills/adapter-openapi@1.0.0` · `@kb-skills/adapter-git-log@1.0.0`  
 > **目标版本**：`v2.0.0`（三期迭代完成后发布）
 
 ---
@@ -442,12 +443,26 @@ MCP Server 已注册 **8 个 Tools**：
 
 #### 3.2.3 OpenAPI/Swagger 适配器（`packages/adapter-openapi/`）
 
-- [ ] 新建 `packages/adapter-openapi/` 子包
-- [ ] 实现 `OpenApiAdapter`
-  - 读取本地或远程 `openapi.json` / `swagger.yaml`
-  - 解析接口定义，转换为 KB 格式
-  - 配置：`{ specUrl, localPath }`
-- [ ] 发布为 `@kb-skills/adapter-openapi`
+- [x] 新建 `packages/adapter-openapi/` 子包
+- [x] 实现 `OpenApiAdapter`
+  - 读取本地 `openapi.json` / `swagger.yaml`（自动检测 18 个候选路径）
+  - 解析接口定义，转换为 `SymbolInfo`（kind: route / type）
+  - 可选写入 KB 文件：`kb/openapi/<name>/`（overview / index / schemas / components）
+  - 配置：`{ specFile, moduleName, kbRoot }`
+- [x] 发布为 `@kb-skills/adapter-openapi@1.0.0`
+
+#### 3.2.4 Git 历史适配器（`packages/adapter-git-log/`）✨ 新增
+
+- [x] 新建 `packages/adapter-git-log/` 子包
+- [x] 实现 `GitLogAdapter`
+  - 零外部依赖：纯 `git log` 命令（单次调用，无 N+1 问题）
+  - 提取热点文件（高频变更 → 风险分级 🔴🟡🟢）
+  - 提取最近提交记录（含变更文件列表）
+  - 提取贡献者统计（含主要维护文件）
+  - 可选写入 KB 文件：`kb/git-log/<name>/`（overview / hot_files / recent_changes / contributors）
+  - 与 `analyze_change_impact` 联动：历史维度 + 静态依赖图 = 更准确的风险评估
+  - 配置：`{ moduleName, sinceDays, recentCommitsLimit, hotFileTopN, pathFilter, kbRoot }`
+- [x] 发布为 `@kb-skills/adapter-git-log@1.0.0`（待 OTP 验证）
 
 ---
 
@@ -553,17 +568,18 @@ MCP Server 已注册 **8 个 Tools**：
 
 ---
 
-### 第三期交付物
+### 第三期交付物（部分完成）
 
-| 交付物 | 说明 |
-|--------|------|
-| `packages/core@2.0.0` | 新增 `ExternalResourceAdapter` 接口、`ExternalResourceManager` |
-| `packages/mcp-server@2.0.0` | 新增 3 个外部资源 Tool（共 16 个） |
-| `packages/adapter-github@1.0.0` | GitHub Issues/PR 适配器（新包） |
-| `packages/adapter-confluence@1.0.0` | Confluence 适配器（新包） |
-| `packages/adapter-openapi@1.0.0` | OpenAPI/Swagger 适配器（新包） |
-| `packages/cli@2.0.0` | 配置文件支持外部资源 |
-| 文档更新 | 根目录 `README.md` 全面更新，新增外部资源配置指南 |
+| 交付物 | 说明 | 状态 |
+|--------|------|------|
+| `packages/core@2.0.0` | 新增 `ExternalResourceAdapter` 接口、`ExternalResourceManager` | ⬜ 待完成 |
+| `packages/mcp-server@2.0.0` | 新增 3 个外部资源 Tool（共 16 个） | ⬜ 待完成 |
+| `packages/adapter-github@1.0.0` | GitHub Issues/PR 适配器（新包） | ⬜ 待完成 |
+| `packages/adapter-confluence@1.0.0` | Confluence 适配器（新包） | ⬜ 待完成 |
+| `packages/adapter-openapi@1.0.0` | OpenAPI/Swagger 适配器（新包） | ✅ 已完成并发布 |
+| `packages/adapter-git-log@1.0.0` | Git 历史分析适配器（新包） | ✅ 已完成，待发布 |
+| `packages/cli@2.0.0` | 配置文件支持外部资源 | ⬜ 待完成 |
+| 文档更新 | 根目录 `README.md` 全面更新，新增外部资源配置指南 | ✅ 已完成 |
 
 ---
 

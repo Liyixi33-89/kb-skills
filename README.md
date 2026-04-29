@@ -22,7 +22,7 @@
 
 | 包 | 版本 | 说明 |
 |---|---|---|
-| [`@kb-skills/core`](./packages/core) | `0.3.3` | 核心引擎（Skill 运行器、KB 写入、进度、校验） |
+| [`@kb-skills/core`](./packages/core) | `1.5.0` | 核心引擎（Skill 运行器、KB 写入、依赖图谱、跨模块分析、Skill 工作流） |
 | [`@kb-skills/cli`](./packages/cli) | `0.2.0` | 命令行工具 `kb-skills` |
 | [`@kb-skills/adapter-koa`](./packages/adapter-koa) | `2.0.1` | Koa + Mongoose / Prisma / TypeORM / Sequelize 后端 |
 | [`@kb-skills/adapter-express`](./packages/adapter-express) | `2.0.1` | Express + Mongoose / Prisma / TypeORM / Sequelize 后端 |
@@ -31,7 +31,9 @@
 | [`@kb-skills/adapter-vue3`](./packages/adapter-vue3) | `2.1.0` | Vue 3 / **Nuxt 3** + Pinia 前端（支持 Element Plus / Naive UI） |
 | [`@kb-skills/adapter-vue2`](./packages/adapter-vue2) | `1.0.1` | Vue 2 + Vuex 前端（支持 Element UI / Vant） |
 | [`@kb-skills/adapter-react-native`](./packages/adapter-react-native) | `1.1.0` | **React Native** / Expo 移动端（支持 Zustand） |
-| [`@kb-skills/mcp-server`](./packages/mcp-server) | `1.0.0` | **MCP Server** — 将 KB 通过 MCP 协议暴露给 Cursor / Claude Desktop / Windsurf |
+| [`@kb-skills/adapter-openapi`](./packages/adapter-openapi) | `1.0.0` | **OpenAPI / Swagger** 规范解析，将接口契约注入 KB |
+| [`@kb-skills/adapter-git-log`](./packages/adapter-git-log) | `1.0.0` | **Git 历史**分析，提取热点文件、变更频率、贡献者统计 |
+| [`@kb-skills/mcp-server`](./packages/mcp-server) | `1.5.0` | **MCP Server** — 将 KB 通过 MCP 协议暴露给 Cursor / Claude Desktop / Windsurf |
 
 ---
 
@@ -82,6 +84,20 @@ npm i -D @kb-skills/cli @kb-skills/adapter-koa
 npm i -D @kb-skills/cli @kb-skills/adapter-express
 # NestJS
 npm i -D @kb-skills/cli @kb-skills/adapter-nestjs
+```
+
+### 方式 5：补充 OpenAPI 接口契约（可选）
+
+```bash
+# 解析 openapi.json / swagger.yaml，将请求体/响应体结构注入 KB
+npm i -D @kb-skills/adapter-openapi
+```
+
+### 方式 6：补充 Git 历史维度（可选）
+
+```bash
+# 提取热点文件、变更频率、贡献者统计，增强变更影响分析
+npm i -D @kb-skills/adapter-git-log
 ```
 
 ### 方式 4：临时使用（不安装）
@@ -269,6 +285,13 @@ export default defineConfig({
 | `@kb-skills/adapter-vue2` | Vue 2 + Vuex | Element UI · Vant · Ant Design |
 | `@kb-skills/adapter-react-native` | **React Native** · **Expo** | — |
 
+### 增强适配器（可选）
+
+| 适配器 | 用途 | 说明 |
+|---|---|---|
+| `@kb-skills/adapter-openapi` | 接口契约 | 解析 `openapi.json` / `swagger.yaml`，将请求体/响应体结构注入 KB |
+| `@kb-skills/adapter-git-log` | 历史维度 | 提取热点文件、变更频率、贡献者统计，增强 `analyze_change_impact` 准确率 |
+
 ### 自动检测规则
 
 `kb-skills init` 读取 `package.json` 依赖，按以下优先级自动选择适配器：
@@ -387,18 +410,30 @@ npm i -D @kb-skills/mcp-server
 }
 ```
 
-### 可用 Tools（8 个）
+### 可用 Tools（13 个）
+
+**RAG 检索类（9 个）**
 
 | Tool | 说明 |
 |------|------|
 | `search_symbol` | 按名称/类型搜索路由、服务、组件、Model 等符号 |
+| `search_semantic` | 自然语言语义搜索（TF-IDF，零依赖） |
 | `get_module_map` | 获取项目模块全景（含 `00_project_map.md`） |
 | `get_route_detail` | 按路由路径查找 KB 文档和源码位置 |
 | `get_kb_file` | 直接读取任意 KB 文件内容 |
 | `list_skills` | 列出所有内置 Skills |
 | `get_skill` | 获取指定 Skill 的完整提示词 |
 | `get_kb_status` | 查看 KB 覆盖率和验证报告 |
-| `run_scan` | 触发重新扫描，刷新缓存 |
+| `run_scan` | 触发重新扫描（支持增量模式），刷新缓存 |
+
+**OAG 分析类（4 个）**
+
+| Tool | 说明 |
+|------|------|
+| `get_dependency_graph` | 查询符号依赖图谱（上游/下游，支持 Mermaid 输出） |
+| `find_cross_module_relations` | 查询前后端跨模块关联（后端路由 ↔ 前端调用点） |
+| `execute_skill_workflow` | 执行 Skill 多步骤工作流（自动编排 Tool 调用链） |
+| `analyze_change_impact` | 变更影响分析（结合依赖图谱 + Git 历史评估风险） |
 
 > 详细文档见 [`packages/mcp-server/README.md`](./packages/mcp-server/README.md)
 
