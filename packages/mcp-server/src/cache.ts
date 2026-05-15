@@ -107,9 +107,55 @@ export class ScanCache {
           this.lastScanAt = Date.now();
           return this.result;
         }
+
+        // ✅ 增量模式：只重扫变更的模块
+        const changedSet = new Set(diff.modulesToRescan);
+        const modulesToRescan = this.ctx.modules.filter((m) =>
+          changedSet.has(m.name),
+        );
+
+        const partialResult = await runDocCodeToKb({
+          projectRoot: this.ctx.projectRoot,
+          kbRoot: this.ctx.kbRoot,
+          modules: modulesToRescan,
+          logger,
+        });
+
+        if (this.result !== null) {
+          // 合并结果：用新扫描结果替换旧的对应模块
+          const updatedNames = new Set(
+            partialResult.modules.map((m) => m.name),
+          );
+          const mergedModules = this.result.modules
+            .filter((m) => !updatedNames.has(m.name))
+            .concat(partialResult.modules);
+
+          this.result = {
+            ...this.result,
+            modules: mergedModules,
+            scannedAt: new Date().toISOString(),
+          };
+        } else {
+          // 首次扫描且仅有部分模块变更（不应该出现，但做防御处理）
+          this.result = partialResult;
+        }
+
+        this.lastScanAt = Date.now();
+
+        // 更新并保存增量缓存
+        const newCache = await buildNewCache(
+          this.ctx.projectRoot,
+          modulePathMap,
+          false,
+          this.incrementalCache,
+        );
+        this.incrementalCache = newCache;
+        await saveIncrementalCache(this.ctx.projectRoot, newCache);
+
+        return this.result;
       }
 
-      // 执行扫描（全量或增量都调用同一个 runDocCodeToKb，由上层决定模块范围）
+      // ─── 全量扫描 ────────────────────────────────────────────────────────────
       const result = await runDocCodeToKb({
         projectRoot: this.ctx.projectRoot,
         kbRoot: this.ctx.kbRoot,
@@ -124,7 +170,7 @@ export class ScanCache {
       const newCache = await buildNewCache(
         this.ctx.projectRoot,
         modulePathMap,
-        mode === "full",
+        true,
         this.incrementalCache,
       );
       this.incrementalCache = newCache;
@@ -138,13 +184,21 @@ export class ScanCache {
 
   // ─── 等待正在进行的扫描完成 ──────────────────────────────────────────────────
 
-  private waitForScan(): Promise<void> {
-    return new Promise((resolve) => {
+  private waitForScan(maxWaitMs = 120_000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
       const check = () => {
         if (!this.scanning) {
           resolve();
+        } else if (Date.now() - startTime > maxWaitMs) {
+          reject(
+            new Error(
+              `[ScanCache] waitForScan timed out after ${maxWaitMs}ms. ` +
+                `Scan may be hung — call invalidate() to reset.`,
+            ),
+          );
         } else {
-          setTimeout(check, 100);
+          setTimeout(check, 200);
         }
       };
       check();

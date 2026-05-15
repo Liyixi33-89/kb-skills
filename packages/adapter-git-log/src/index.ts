@@ -13,10 +13,10 @@
  *   ├── 02_recent_changes.md — 最近 N 条提交记录
  *   └── 03_contributors.md   — 贡献者统计
  *
- * 零外部依赖：仅使用 Node.js 内置的 child_process.execSync
+ * 零外部依赖：仅使用 Node.js 内置的 child_process.execFileSync（避免 shell 注入）
  */
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import {
   writeFileEnsuring,
   type ModuleInfo,
@@ -100,35 +100,53 @@ export interface GitLogRaw {
 
 // ─── Git 命令执行 ─────────────────────────────────────────────────────────────
 
-/** 安全执行 git 命令，失败时返回空字符串 */
-const runGit = (cmd: string, cwd: string): string => {
+/**
+ * 安全执行 git 命令（使用 execFileSync 数组参数形式避免 shell 注入）。
+ * 失败时返回空字符串。
+ */
+const runGit = (args: string[], cwd: string): string => {
   try {
-    return execSync(cmd, {
+    return execFileSync("git", args, {
       cwd,
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
       timeout: 30_000,
+      maxBuffer: 10 * 1024 * 1024, // 10MB
     }).trim();
   } catch {
     return "";
   }
 };
 
+/**
+ * 验证路径过滤器，拒绝危险字符（仅允许合法路径字符）。
+ * 作为 execFileSync 的第二道防线。
+ */
+const validatePathFilter = (pathFilter: string): string => {
+  if (!/^[\w.\/\-*]+$/.test(pathFilter)) {
+    throw new Error(
+      `[adapter-git-log] Invalid pathFilter: "${pathFilter}". ` +
+        `Only alphanumeric, /, ., -, _, * characters are allowed.`,
+    );
+  }
+  return pathFilter;
+};
+
 /** 检查目录是否是 git 仓库 */
 const isGitRepo = (dir: string): boolean => {
-  const result = runGit("git rev-parse --is-inside-work-tree", dir);
+  const result = runGit(["rev-parse", "--is-inside-work-tree"], dir);
   return result === "true";
 };
 
 /** 获取 git 仓库根目录 */
 const getRepoRoot = (dir: string): string => {
-  const root = runGit("git rev-parse --show-toplevel", dir);
+  const root = runGit(["rev-parse", "--show-toplevel"], dir);
   return root || dir;
 };
 
 /** 获取当前分支名 */
 const getCurrentBranch = (repoRoot: string): string => {
-  return runGit("git rev-parse --abbrev-ref HEAD", repoRoot) || "unknown";
+  return runGit(["rev-parse", "--abbrev-ref", "HEAD"], repoRoot) || "unknown";
 };
 
 // ─── 一次性解析所有数据 ───────────────────────────────────────────────────────
@@ -150,13 +168,21 @@ const parseAllCommits = (
   limit: number,
   pathFilter?: string,
 ): GitCommit[] => {
-  const since = `--since="${sinceDays} days ago"`;
-  const pathArg = pathFilter ? `-- "${pathFilter}"` : "";
+  const args = [
+    "log",
+    `-${limit}`,
+    `--since=${sinceDays} days ago`,
+    `--format=${COMMIT_MARKER}%h|%H|%aI|%an|%ae|%s`,
+    "--name-only",
+  ];
 
-  const output = runGit(
-    `git log -${limit} ${since} --format="${COMMIT_MARKER}%h|%H|%aI|%an|%ae|%s" --name-only ${pathArg}`,
-    repoRoot,
-  );
+  // 路径过滤：验证后作为数组参数安全传入（不经过 shell 解释）
+  if (pathFilter) {
+    const safePath = validatePathFilter(pathFilter);
+    args.push("--", safePath);
+  }
+
+  const output = runGit(args, repoRoot);
 
   if (!output) return [];
 

@@ -34,17 +34,29 @@ export const connectHttp = async (
   });
 
   const httpServer = createServer(async (req, res) => {
-    if (req.method === "POST" && req.url === "/mcp") {
-      await transport.handleRequest(req, res);
-      return;
+    try {
+      if (req.method === "POST" && req.url === "/mcp") {
+        await transport.handleRequest(req, res);
+        return;
+      }
+      if (req.method === "GET" && req.url === "/health") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "ok", server: "kb-skills-mcp" }));
+        return;
+      }
+      res.writeHead(404);
+      res.end("Not found");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Internal server error";
+      process.stderr.write(
+        `[kb-skills-mcp] HTTP handler error: ${message}\n`,
+      );
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal server error" }));
+      }
     }
-    if (req.method === "GET" && req.url === "/health") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "ok", server: "kb-skills-mcp" }));
-      return;
-    }
-    res.writeHead(404);
-    res.end("Not found");
   });
 
   await server.connect(transport);

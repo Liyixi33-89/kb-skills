@@ -21,6 +21,12 @@ export interface RunDocToKbOptions {
   logger: Logger;
 }
 
+/** 模块扫描失败的错误信息 */
+export interface ModuleScanError {
+  module: string;
+  error: Error;
+}
+
 export const runDocCodeToKb = async (opts: RunDocToKbOptions): Promise<ScanResult> => {
   const { projectRoot, kbRoot, modules, logger } = opts;
 
@@ -31,14 +37,41 @@ export const runDocCodeToKb = async (opts: RunDocToKbOptions): Promise<ScanResul
   logger.info(`Scanning ${modules.length} module(s)...`);
 
   const scannedModules: ModuleInfo[] = [];
+  const scanErrors: ModuleScanError[] = [];
+
   for (const m of modules) {
     const modulePath = path.resolve(projectRoot, m.path);
     logger.debug(`  scan [${m.adapter.name}] ${m.name} -> ${modulePath}`);
-    const info = await m.adapter.scan(modulePath);
-    // Override name so KB dir matches user config.
-    info.name = m.name;
-    scannedModules.push(info);
-    logger.success(`scanned ${m.name} (${info.symbols.length} symbols)`);
+    try {
+      const info = await m.adapter.scan(modulePath);
+      // Override name so KB dir matches user config.
+      info.name = m.name;
+      scannedModules.push(info);
+      logger.success(`scanned ${m.name} (${info.symbols.length} symbols)`);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      scanErrors.push({ module: m.name, error });
+      logger.error(
+        `Failed to scan module "${m.name}" [${m.adapter.name}]: ${error.message}`,
+      );
+      // 继续扫描其他模块，不中断整体流程
+    }
+  }
+
+  // 如果所有模块都扫描失败，抛出聚合错误
+  if (scannedModules.length === 0 && scanErrors.length > 0) {
+    const messages = scanErrors
+      .map((e) => `  - ${e.module}: ${e.error.message}`)
+      .join("\n");
+    throw new Error(
+      `All ${scanErrors.length} module(s) failed to scan:\n${messages}`,
+    );
+  }
+
+  if (scanErrors.length > 0) {
+    logger.warn(
+      `${scanErrors.length} module(s) failed, ${scannedModules.length} succeeded. Continuing with successful modules.`,
+    );
   }
 
   const scan: ScanResult = {
